@@ -1,0 +1,11 @@
+{
+  "name": "whatsapponlineviewer-android",
+  "version": "1.0.0",
+  "description": "Not an actual Node app - placeholder so tooling that expects package.json won't fail. The real project is an Android app (Kotlin).",
+  "private": true,
+  "scripts": {
+    "note": "This repository is an Android Kotlin project. Open in Android Studio."
+  },
+  "author": "Generated",
+  "license": "MIT"
+}

@@ -1,0 +1,13 @@
+android {
+    // ...
+    buildFeatures {
+        // Make sure this is true (or remove the line entirely since true is the default)
+        buildConfig = true
+    }
+
+    defaultConfig {
+        // your existing defaultConfig and buildConfigField entries can stay here
+        // e.g.:
+        // buildConfigField "String", "MY_KEY", "\"someValue\""
+    }
+}
