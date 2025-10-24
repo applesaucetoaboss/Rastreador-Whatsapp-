@@ -4,6 +4,11 @@ apply plugin: 'kotlin-android'
 android {
     compileSdk 33
 
+    // Ensure buildConfig generation is enabled for the module
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId "com.example.whatsapponlineviewer"
         minSdk 21
