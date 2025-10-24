@@ -1,13 +1,25 @@
-android {
-    // ...
-    buildFeatures {
-        // Make sure this is true (or remove the line entirely since true is the default)
-        buildConfig = true
-    }
+// Top-level build.gradle — don't put an `android {}` block here.
+// Configure repositories and the Android/Kotlin Gradle plugin classpaths.
 
-    defaultConfig {
-        // your existing defaultConfig and buildConfigField entries can stay here
-        // e.g.:
-        // buildConfigField "String", "MY_KEY", "\"someValue\""
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
     }
+    dependencies {
+        // Use a plugin version compatible with Gradle 8.0.2
+        classpath "com.android.tools.build:gradle:8.0.2"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }
