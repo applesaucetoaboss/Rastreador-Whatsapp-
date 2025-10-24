@@ -1,4 +1,4 @@
-// Top-level build.gradle — don't put an `android {}` block here.
+// Top-level build.gradle — do NOT include `android {}` here.
 // Configure repositories and the Android/Kotlin Gradle plugin classpaths.
 
 buildscript {
@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // Use a plugin version compatible with Gradle 8.0.2
+        // AGP version compatible with Gradle 8.0.2
         classpath "com.android.tools.build:gradle:8.0.2"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10"
     }
