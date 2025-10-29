@@ -4,9 +4,10 @@ apply plugin: 'kotlin-android'
 android {
     compileSdk 33
 
-    // Ensure buildConfig generation is enabled for the module
+    // Enable buildConfig and viewBinding
     buildFeatures {
         buildConfig = true
+        viewBinding = true
     }
 
     defaultConfig {

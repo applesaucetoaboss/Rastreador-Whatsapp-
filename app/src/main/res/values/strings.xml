@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Rastreador WhatsApp</string>
+    <string name="app_title">Rastreador de Estado WhatsApp</string>
+    <string name="whatsapp_logo">Logo de WhatsApp</string>
+    <string name="phone_number_hint">Número de teléfono (con código de país)</string>
+    <string name="check_status">Ver Estado</string>
+    <string name="status_label">Estado:</string>
+    <string name="last_seen_label">Última vez visto:</string>
+    <string name="searching">Buscando...</string>
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+    <string name="remaining_checks">Consultas gratuitas restantes: %d</string>
+    <string name="premium_required">Has alcanzado el límite de consultas gratuitas. ¿Deseas actualizar a Premium?</string>
+    <string name="yes">Sí</string>
+    <string name="no">No</string>
+    <string name="premium_title">Actualizar a Premium</string>
+    <string name="payment_method">Método de pago</string>
+    <string name="card_payment">Pago con tarjeta</string>
+    <string name="spei_payment">Transferencia SPEI</string>
+    <string name="card_number_hint">Número de tarjeta</string>
+    <string name="expiry_date_hint">MM/AA</string>
+    <string name="cvv_hint">CVV</string>
+    <string name="pay">Pagar</string>
+    <string name="payment_success">¡Pago exitoso! Ahora tienes acceso Premium.</string>
+    <string name="payment_error">Error en el pago. Inténtalo de nuevo.</string>
+    <string name="spei_instructions">Realiza una transferencia a la siguiente CLABE:</string>
+    <string name="spei_clabe">012345678901234567</string>
+    <string name="spei_reference">Referencia: %s</string>
+    <string name="spei_confirm">He realizado la transferencia</string>
+    <string name="invalid_phone">Por favor ingresa un número válido (7-15 dígitos)</string>
+</resources>
