@@ -2,13 +2,13 @@
 
 Descripción
 -----------
-Aplicación Android que simula la comprobación del estado "Online/Offline" de un número estilo WhatsApp. Incluye límite de 3 comprobaciones gratuitas diarias y flujo de pago para activar Premium (simulado) mediante tarjeta (Stripe SDK integrado) o SPEI (transferencia manual simulada).
+Aplicación Android que la comprobación del estado "Online/Offline" de un número estilo WhatsApp. Incluye límite de 3 comprobaciones gratuitas diarias y flujo de pago para activar Premium (simulado) mediante tarjeta (Stripe SDK integrado) o SPEI (transferencia manual simulada).
 
 Características
 ---------------
 - Interfaz en español con estilo de colores tipo WhatsApp.
 - Campo para número de teléfono, botón "Ver Estado".
-- Simulación de búsqueda (3 segundos), resultado aleatorio "Online" / "Offline".
+  - de búsqueda (3 segundos), resultado aleatorio "Online" / "Offline".
 - "Última vez visto" aleatorio dentro de las últimas 24 horas.
 - Límite de 3 comprobaciones gratuitas por día, almacenamiento local con SharedPreferences.
 - Flujo de pago simulado: tarjeta (Stripe SDK) y SPEI (CLABE mostrada).
@@ -49,11 +49,11 @@ Uso
 - Ingresa un número de teléfono válido (7-15 dígitos).
 - Pulsa "Ver Estado". Verás "Buscando..." por 3 segundos y luego el estado + última vez visto.
 - Tras 3 comprobaciones gratuitas recibirás un aviso para actualizar a Premium.
-- Si eliges actualizar, se abrirá la pantalla de pago (simulada). Al confirmar (tarjeta o SPEI), la app marca Premium activo.
+- Si eliges actualizar, se abrirá la pantalla de pago. Al confirmar (tarjeta o SPEI), la app marca Premium activo.
 
 Notas de pago
 -------------
-- Este proyecto simula pagos localmente para la demo.
+- Este proyecto pagos localmente para la demo.
 - Stripe SDK está incluido (com.stripe:stripe-android:20.20.0). Para pagos reales, debes integrar un backend que genere PaymentIntents y provea client secrets.
 - Nunca incluyas claves secretas en el cliente. Usa sólo la publishable key en el cliente.
 
