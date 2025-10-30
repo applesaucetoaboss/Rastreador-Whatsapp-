@@ -50,8 +50,8 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     
     // Stripe SDK - using only the official SDK
-    implementation 'com.stripe:stripe-android:20.30.0'
-    implementation 'com.stripe:stripe-core:20.30.0'
+    implementation 'com.stripe:stripe-android:20.30.3'
+    implementation 'com.stripe:stripe-core:20.30.3'
     implementation 'com.stripe:stripe-java:22.21.0'
     
     // For API calls
