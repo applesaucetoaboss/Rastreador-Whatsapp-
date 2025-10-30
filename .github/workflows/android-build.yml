@@ -82,10 +82,9 @@ jobs:
           fi
         shell: bash
 
-      - name: Clear Gradle cache
+      - name: Clear Gradle cache (aggressive)
         run: |
-          rm -rf ~/.gradle/caches
-          rm -rf ~/.gradle/wrapper
+          rm -rf ~/.gradle
         shell: bash
 
       - name: Ensure Gradle wrapper exists (generate if placeholder or missing)
