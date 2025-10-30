@@ -52,7 +52,7 @@ dependencies {
     // Stripe SDK - using only the official SDK
     implementation 'com.stripe:stripe-android:21.29.0'
     implementation 'com.stripe:stripe-core:21.29.0'
-    implementation 'com.stripe:stripe-java:22.21.0'
+
     
     // For API calls
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
