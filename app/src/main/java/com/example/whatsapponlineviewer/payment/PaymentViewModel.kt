@@ -1,13 +1,14 @@
 package com.example.whatsapponlineviewer.payment
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
-class PaymentViewModel : ViewModel() {
-    private val repository = PaymentRepository()
+class PaymentViewModel(private val context: Context) : ViewModel() {
+    private val repository = PaymentRepository(context)
     
     private val _paymentState = MutableLiveData<PaymentState>()
     val paymentState: LiveData<PaymentState> = _paymentState

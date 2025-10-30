@@ -123,7 +123,7 @@ class CardPaymentFragment : Fragment() {
             object : com.stripe.android.ApiResultCallback<com.stripe.android.model.PaymentIntentResult> {
                 override fun onSuccess(result: com.stripe.android.model.PaymentIntentResult) {
                     val paymentIntent = result.intent
-                    val status = paymentIntent.status
+                    val status = paymentIntent.status ?: ""
                     if (status == "succeeded") {
                         viewModel.handlePaymentSuccess()
                     } else {
