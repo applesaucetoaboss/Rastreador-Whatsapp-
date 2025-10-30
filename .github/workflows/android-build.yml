@@ -35,10 +35,14 @@ jobs:
 
 
 
+      - name: Set GRADLE_VERSION environment variable
+        run: echo "GRADLE_VERSION=8.13" >> $GITHUB_ENV
+        shell: bash
+
       - name: Install Gradle CLI 8.0.2 (for wrapper generation)
         run: |
           set -euo pipefail
-          GRADLE_VERSION=8.4
+          GRADLE_VERSION=${{ env.GRADLE_VERSION }}
           GRADLE_DIR="$RUNNER_TEMP/gradle"
           mkdir -p "$GRADLE_DIR"
           wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O gradle.zip
