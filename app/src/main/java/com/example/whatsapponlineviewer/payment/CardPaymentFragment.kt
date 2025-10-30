@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.example.whatsapponlineviewer.R
 import com.example.whatsapponlineviewer.PaymentActivity
@@ -109,7 +108,8 @@ class CardPaymentFragment : Fragment() {
     }
     
     private fun createPaymentMethod() {
-        val params = cardInputWidget.paymentMethodCreateParams ?: run {
+        val params = cardInputWidget.paymentMethodCreateParams
+        if (params == null) {
             Toast.makeText(context, "Invalid card details", Toast.LENGTH_SHORT).show()
             return
         }
@@ -130,7 +130,7 @@ class CardPaymentFragment : Fragment() {
     
     private fun confirmPayment(params: com.stripe.android.model.ConfirmPaymentIntentParams) {
         context?.let { ctx ->
-            paymentLauncher.confirmPaymentIntent(params)
+            paymentLauncher.confirm(params)
         }
     }
     
