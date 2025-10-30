@@ -101,6 +101,10 @@ jobs:
           fi
         shell: bash
 
+      - name: Print app/build.gradle content (diagnostic)
+        run: cat app/build.gradle
+        shell: bash
+
       - name: Build APK (assembleDebug)
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
