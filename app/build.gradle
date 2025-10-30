@@ -20,7 +20,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // provide stripe publishable key via BuildConfig for easy access
-        buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", "\"pk_test_51JEXAMPLEReplaceWithYourKey\""
+        buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", "\"pk_live_51SJvpVAgq1ywLQy0IPutpWNtY9AmGKijmeu0MgxOxsNQEXW1nsdrLuUS0o7aU2Cnki6OwkZ1YhV10nCVcBgRuWjO00jh0pFCLY\""
     }
 
     buildTypes {
