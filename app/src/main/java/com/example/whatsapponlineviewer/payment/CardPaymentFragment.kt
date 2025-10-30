@@ -14,7 +14,6 @@ import com.example.whatsapponlineviewer.PaymentActivity
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.Stripe
 import com.stripe.android.model.PaymentMethod
-import com.stripe.android.model.PaymentIntentResult
 import com.stripe.android.view.CardInputWidget
 
 class CardPaymentFragment : Fragment() {
