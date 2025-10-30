@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -33,10 +33,19 @@ jobs:
           sudo apt-get install -y wget unzip git ca-certificates apt-transport-https gnupg rsync
         shell: bash
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 8.7
+
+
+      - name: Install Gradle CLI 8.0.2 (for wrapper generation)
+        run: |
+          set -euo pipefail
+          GRADLE_VERSION=8.0.2
+          GRADLE_DIR="$RUNNER_TEMP/gradle"
+          mkdir -p "$GRADLE_DIR"
+          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O gradle.zip
+          unzip -q gradle.zip -d "$GRADLE_DIR"
+          echo "$GRADLE_DIR/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
+          rm -f gradle.zip
+        shell: bash
 
       - name: Install Android command-line tools and SDK packages
         run: |
@@ -78,37 +87,36 @@ jobs:
       - name: Ensure Gradle wrapper exists (generate if placeholder or missing)
         run: |
           set -euo pipefail
-          # Ensure the downloaded Gradle CLI (8.0.2) is used for wrapper generation
+          # Use the downloaded Gradle CLI (in PATH) to generate a real wrapper if needed
           if [ ! -f ./gradlew ] || grep -q "placeholder gradlew" ./gradlew 2>/dev/null || grep -q "placeholder gradlew" ./gradlew.bat 2>/dev/null; then
             echo "Gradle wrapper missing or placeholder detected — generating wrapper with downloaded gradle"
-            gradle wrapper --gradle-version 8.7
+            gradle wrapper --gradle-version 8.0.2
             chmod +x ./gradlew || true
           else
             echo "Gradle wrapper appears present and not placeholder"
           fi
         shell: bash
 
-      - name: Print app/build.gradle content (diagnostic)
-        run: cat app/build.gradle
-        shell: bash
 
-      - name: Ensure gradlew has execute permissions
-        run: chmod +x gradlew
-        shell: bash
 
-      - name: Stop any running Gradle daemons
-        run: ./gradlew --stop || true
-        shell: bash
-
-      - name: Aggressively clean Gradle cache and build directories
-        run: |
-          rm -rf ~/.gradle/caches
-          rm -rf app/build
-        shell: bash
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Build APK (assembleDebug)
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          ./gradlew assembleDebug --stacktrace -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false --info
+          set -euo pipefail
+          export TERM=dumb
+          ./gradlew assembleDebug --no-daemon
         shell: bash
 
       - name: Upload APK artifact
