@@ -107,13 +107,8 @@ jobs:
         shell: bash
 
       - name: Build APK (assembleDebug)
-        env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          set -euo pipefail
-          export TERM=dumb
-          ./gradlew assembleDebug --no-daemon --refresh-dependencies
+          ./gradlew assembleDebug --stacktrace -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false
         shell: bash
 
       - name: Upload APK artifact
