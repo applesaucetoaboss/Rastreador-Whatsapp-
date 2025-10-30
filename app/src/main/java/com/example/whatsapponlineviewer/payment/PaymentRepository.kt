@@ -1,5 +1,6 @@
 package com.example.whatsapponlineviewer.payment
 
+import android.content.Context
 import com.example.whatsapponlineviewer.BuildConfig
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.model.ConfirmPaymentIntentParams
@@ -8,7 +9,7 @@ import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class PaymentRepository {
+class PaymentRepository(private val context: Context) {
     private val stripeApiService: StripeApiService by lazy {
         Retrofit.Builder()
             .baseUrl("https://your-backend-server.com/") // Replace with your actual backend URL
@@ -19,7 +20,7 @@ class PaymentRepository {
 
     init {
         // Initialize Stripe with your publishable key
-        PaymentConfiguration.init(BuildConfig.STRIPE_PUBLISHABLE_KEY)
+        PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY)
     }
 
     suspend fun createPaymentIntent(amount: Int): Result<PaymentIntentResponse> {

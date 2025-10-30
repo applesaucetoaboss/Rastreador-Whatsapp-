@@ -77,7 +77,8 @@ class CardPaymentFragment : Fragment() {
     
     private fun processPayment() {
         // Validate card input
-        if (!cardInputWidget.validateCardNumber() || !cardInputWidget.validateExpiryDate() || !cardInputWidget.validateCvc()) {
+        val cardParams = cardInputWidget.paymentMethodCreateParams
+        if (cardParams == null) {
             Toast.makeText(context, "Please enter valid card details", Toast.LENGTH_SHORT).show()
             return
         }
@@ -119,18 +120,14 @@ class CardPaymentFragment : Fragment() {
         stripe.onPaymentResult(
             requestCode,
             data,
-            object : com.stripe.android.ApiResultCallback<com.stripe.android.paymentsheet.PaymentSheetResult> {
-                override fun onSuccess(result: com.stripe.android.paymentsheet.PaymentSheetResult) {
-                    when (result) {
-                        is com.stripe.android.paymentsheet.PaymentSheetResult.Completed -> {
-                            viewModel.handlePaymentSuccess()
-                        }
-                        is com.stripe.android.paymentsheet.PaymentSheetResult.Canceled -> {
-                            Toast.makeText(context, "Payment canceled", Toast.LENGTH_SHORT).show()
-                        }
-                        is com.stripe.android.paymentsheet.PaymentSheetResult.Failed -> {
-                            viewModel.handlePaymentError(result.error)
-                        }
+            object : com.stripe.android.ApiResultCallback<com.stripe.android.model.PaymentIntentResult> {
+                override fun onSuccess(result: com.stripe.android.model.PaymentIntentResult) {
+                    val paymentIntent = result.intent
+                    val status = paymentIntent.status
+                    if (status == "succeeded") {
+                        viewModel.handlePaymentSuccess()
+                    } else {
+                        Toast.makeText(context, "Payment failed: $status", Toast.LENGTH_SHORT).show()
                     }
                 }
                 
