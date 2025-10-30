@@ -52,7 +52,7 @@ class CardPaymentFragment : Fragment() {
                         viewModel.handlePaymentSuccess()
                     }
                     is PaymentResult.Failed -> {
-                        viewModel.handlePaymentError(paymentResult.throwable)
+                        viewModel.handlePaymentError(paymentResult.throwable as Exception)
                     }
                     is PaymentResult.Canceled -> {
                         Toast.makeText(context, "Payment canceled", Toast.LENGTH_LONG).show()
