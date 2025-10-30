@@ -15,12 +15,15 @@ import com.stripe.android.PaymentConfiguration
 import com.stripe.android.Stripe
 import com.stripe.android.model.PaymentMethod
 import com.stripe.android.view.CardInputWidget
+import com.stripe.android.payments.paymentlauncher.PaymentLauncher
+import com.stripe.android.payments.paymentlauncher.PaymentResult
 
 class CardPaymentFragment : Fragment() {
     
     private lateinit var viewModel: PaymentViewModel
     private lateinit var stripe: Stripe
     private lateinit var cardInputWidget: CardInputWidget
+    private lateinit var paymentLauncher: PaymentLauncher
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,6 +42,23 @@ class CardPaymentFragment : Fragment() {
         context?.let {
             PaymentConfiguration.init(it, com.example.whatsapponlineviewer.BuildConfig.STRIPE_PUBLISHABLE_KEY)
             stripe = Stripe(it, PaymentConfiguration.getInstance(it).publishableKey)
+            paymentLauncher = PaymentLauncher.Companion.create(
+                this,
+                PaymentConfiguration.getInstance(it).publishableKey,
+                stripeAccountId = null
+            ) { paymentResult ->
+                when (paymentResult) {
+                    is PaymentResult.Completed -> {
+                        viewModel.handlePaymentSuccess()
+                    }
+                    is PaymentResult.Failed -> {
+                        viewModel.handlePaymentError(paymentResult.throwable)
+                    }
+                    is PaymentResult.Canceled -> {
+                        Toast.makeText(context, "Payment canceled", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         }
         
         cardInputWidget = view.findViewById(R.id.cardInputWidget)
@@ -110,32 +130,12 @@ class CardPaymentFragment : Fragment() {
     
     private fun confirmPayment(params: com.stripe.android.model.ConfirmPaymentIntentParams) {
         context?.let { ctx ->
-            stripe.confirmPayment(this, params)
+            paymentLauncher.confirmPayment(params)
         }
     }
     
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        
-        // Handle the result of stripe.confirmPayment
-        stripe.onPaymentResult(
-            requestCode,
-            data,
-            object : com.stripe.android.ApiResultCallback<com.stripe.android.model.PaymentIntentResult> {
-                override fun onSuccess(result: com.stripe.android.model.PaymentIntentResult) {
-                    val paymentIntent = result.intent
-                    val status = paymentIntent.status ?: ""
-                    if (status == "succeeded") {
-                        viewModel.handlePaymentSuccess()
-                    } else {
-                        Toast.makeText(context, "Payment failed: $status", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                
-                override fun onError(e: Exception) {
-                    viewModel.handlePaymentError(e)
-                }
-            }
-        )
-    }
+    // The PaymentLauncher handles the result, so we no longer need onActivityResult.
+    // override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+    //     super.onActivityResult(requestCode, resultCode, data)
+    // }
 }
