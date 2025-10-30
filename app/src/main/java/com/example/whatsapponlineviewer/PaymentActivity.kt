@@ -8,6 +8,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.whatsapponlineviewer.databinding.ActivityPaymentBinding
+import com.example.whatsapponlineviewer.payment.CardPaymentFragment
+import com.example.whatsapponlineviewer.payment.PaymentViewModel
 import com.example.whatsapponlineviewer.viewmodel.StatusViewModel
 import java.util.*
 
@@ -16,6 +18,7 @@ class PaymentActivity : AppCompatActivity() {
     private var _binding: ActivityPaymentBinding? = null
     private val binding get() = _binding!!
     private lateinit var viewModel: StatusViewModel
+    private lateinit var paymentViewModel: PaymentViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,6 +27,7 @@ class PaymentActivity : AppCompatActivity() {
             setContentView(binding.root)
 
             viewModel = ViewModelProvider(this)[StatusViewModel::class.java]
+            paymentViewModel = ViewModelProvider(this)[PaymentViewModel::class.java]
 
             setupPaymentMethodSelection()
             
