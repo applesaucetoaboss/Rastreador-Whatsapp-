@@ -82,7 +82,7 @@ class CardPaymentFragment : Fragment() {
                 }
                 is PaymentState.ConfirmPayment -> {
                     // Confirm the payment with Stripe
-                    confirmPayment(state.params)
+                    this.confirmPayment(state.params)
                 }
                 is PaymentState.Success -> {
                     // Payment successful
