@@ -109,6 +109,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Aggressively clean Gradle cache and build directories
+        run: |
+          rm -rf ~/.gradle/caches
+          rm -rf app/build
+        shell: bash
+
       - name: Build APK (assembleDebug)
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
