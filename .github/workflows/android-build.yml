@@ -90,7 +90,7 @@ jobs:
           # Use the downloaded Gradle CLI (in PATH) to generate a real wrapper if needed
           if [ ! -f ./gradlew ] || grep -q "placeholder gradlew" ./gradlew 2>/dev/null || grep -q "placeholder gradlew" ./gradlew.bat 2>/dev/null; then
             echo "Gradle wrapper missing or placeholder detected — generating wrapper with downloaded gradle"
-            gradle wrapper --gradle-version 8.7
+            gradle wrapper --gradle-version 8.13
             chmod +x ./gradlew || true
           else
             echo "Gradle wrapper appears present and not placeholder"
