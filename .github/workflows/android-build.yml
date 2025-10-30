@@ -33,19 +33,10 @@ jobs:
           sudo apt-get install -y wget unzip git ca-certificates apt-transport-https gnupg rsync
         shell: bash
 
-      - name: Install Gradle CLI 8.0.2
-        run: |
-          echo "Installing Gradle CLI 8.0.2"
-          GRADLE_VERSION="8.0.2"
-          GRADLE_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
-          GRADLE_DIR="/usr/local/gradle"
-          sudo mkdir -p "${GRADLE_DIR}"
-          curl -L "${GRADLE_URL}" -o gradle.zip
-          sudo unzip -q gradle.zip -d "${GRADLE_DIR}"
-          sudo rm gradle.zip
-          echo "${GRADLE_DIR}/gradle-${GRADLE_VERSION}/bin" | sudo tee -a /etc/paths.d/gradle
-          echo "Gradle CLI ${GRADLE_VERSION} installed successfully."
-        shell: bash
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 8.0.2
 
       - name: Install Android command-line tools and SDK packages
         run: |
