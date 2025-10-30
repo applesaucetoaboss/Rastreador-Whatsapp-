@@ -38,7 +38,7 @@ jobs:
       - name: Install Gradle CLI 8.0.2 (for wrapper generation)
         run: |
           set -euo pipefail
-          GRADLE_VERSION=8.0.2
+          GRADLE_VERSION=8.4
           GRADLE_DIR="$RUNNER_TEMP/gradle"
           mkdir -p "$GRADLE_DIR"
           wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O gradle.zip
