@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.example.whatsapponlineviewer.R
+import com.example.whatsapponlineviewer.PaymentActivity
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.Stripe
 import com.stripe.android.model.PaymentMethod
@@ -121,8 +122,8 @@ class CardPaymentFragment : Fragment() {
         stripe.onPaymentResult(
             requestCode,
             data,
-            object : com.stripe.android.ApiResultCallback<PaymentIntentResult> {
-                override fun onSuccess(result: PaymentIntentResult) {
+            object : com.stripe.android.ApiResultCallback<com.stripe.android.model.PaymentIntentResult> {
+                override fun onSuccess(result: com.stripe.android.model.PaymentIntentResult) {
                     val paymentIntent = result.intent
                     val status = paymentIntent.status ?: ""
                     if (status == "succeeded") {
