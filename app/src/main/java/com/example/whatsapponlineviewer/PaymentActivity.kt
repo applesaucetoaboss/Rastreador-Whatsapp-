@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.whatsapponlineviewer.databinding.ActivityPaymentBinding
 import com.example.whatsapponlineviewer.payment.CardPaymentFragment
+import com.example.whatsapponlineviewer.payment.SpeiPaymentFragment
 import com.example.whatsapponlineviewer.payment.PaymentViewModel
 import com.example.whatsapponlineviewer.viewmodel.StatusViewModel
 import java.util.*
@@ -77,31 +78,4 @@ class PaymentActivity : AppCompatActivity() {
     }
 }
 
-class CardPaymentFragment : Fragment(R.layout.fragment_card_payment) {
-    
-    override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        
-        view.findViewById<android.widget.Button>(R.id.btnPay).setOnClickListener {
-            // Simulate payment processing
-            (activity as? PaymentActivity)?.onPaymentSuccess()
-        }
-    }
-}
-
-class SpeiPaymentFragment : Fragment(R.layout.fragment_spei_payment) {
-    
-    override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        
-        // Generate a random reference number
-        val reference = UUID.randomUUID().toString().substring(0, 8).uppercase()
-        view.findViewById<android.widget.TextView>(R.id.tvSpeiReference).text = 
-            getString(R.string.spei_reference, reference)
-        
-        view.findViewById<android.widget.Button>(R.id.btnConfirmSpei).setOnClickListener {
-            // Simulate payment confirmation
-            (activity as? PaymentActivity)?.onPaymentSuccess()
-        }
-    }
-}
+// SpeiPaymentFragment is now in the payment package
