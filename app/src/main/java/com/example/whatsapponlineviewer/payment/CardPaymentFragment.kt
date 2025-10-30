@@ -130,7 +130,7 @@ class CardPaymentFragment : Fragment() {
     
     private fun confirmPayment(params: com.stripe.android.model.ConfirmPaymentIntentParams) {
         context?.let { ctx ->
-            paymentLauncher.confirmPayment(params)
+            paymentLauncher.confirmPaymentIntent(params)
         }
     }
     
