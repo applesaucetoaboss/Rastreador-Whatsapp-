@@ -111,7 +111,7 @@ jobs:
 
       - name: Aggressively clean Gradle cache and build directories
         run: |
-          rm -rf ~/.gradle/caches
+          rm -rf ~/.gradle
           rm -rf app/build
         shell: bash
 
