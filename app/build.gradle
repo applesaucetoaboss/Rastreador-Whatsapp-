@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdk 33
+    compileSdk 34
 
     // Enable buildConfig and viewBinding
     buildFeatures {
@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId "com.example.whatsapponlineviewer"
         minSdk 21
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
