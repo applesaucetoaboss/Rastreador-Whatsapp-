@@ -33,19 +33,21 @@ jobs:
           sudo apt-get install -y wget unzip git ca-certificates apt-transport-https gnupg rsync
         shell: bash
 
-      - name: Install Gradle CLI 8.0.2 (for wrapper generation)
+      - name: Install Gradle CLI 8.0.2
         run: |
-          set -euo pipefail
-          GRADLE_VERSION=8.0.2
-          GRADLE_DIR="$RUNNER_TEMP/gradle"
-          mkdir -p "$GRADLE_DIR"
-          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O gradle.zip
-          unzip -q gradle.zip -d "$GRADLE_DIR"
-          echo "$GRADLE_DIR/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
-          rm -f gradle.zip
+          echo "Installing Gradle CLI 8.0.2"
+          GRADLE_VERSION="8.0.2"
+          GRADLE_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          GRADLE_DIR="/usr/local/gradle"
+          sudo mkdir -p "${GRADLE_DIR}"
+          curl -L "${GRADLE_URL}" -o gradle.zip
+          sudo unzip -q gradle.zip -d "${GRADLE_DIR}"
+          sudo rm gradle.zip
+          echo "${GRADLE_DIR}/gradle-${GRADLE_VERSION}/bin" | sudo tee -a /etc/paths.d/gradle
+          echo "Gradle CLI ${GRADLE_VERSION} installed successfully."
         shell: bash
 
-      - name: Install Android commandline tools and SDK packages
+      - name: Install Android command-line tools and SDK packages
         run: |
           ANDROID_SDK_ROOT="$RUNNER_TEMP/android-sdk"
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
