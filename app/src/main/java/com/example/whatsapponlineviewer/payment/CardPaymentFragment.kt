@@ -7,12 +7,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import com.example.whatsapponlineviewer.PaymentActivity
 import com.example.whatsapponlineviewer.R
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.Stripe
 import com.stripe.android.model.PaymentMethod
+import com.stripe.android.model.PaymentIntentResult
 import com.stripe.android.view.CardInputWidget
 
 class CardPaymentFragment : Fragment() {
@@ -97,7 +98,7 @@ class CardPaymentFragment : Fragment() {
             stripe.createPaymentMethod(params, callback = object : com.stripe.android.ApiResultCallback<PaymentMethod> {
                 override fun onSuccess(result: PaymentMethod) {
                     // Payment method created, confirm payment
-                    viewModel.confirmPayment(result.id)
+                    viewModel.confirmPayment(result.id ?: "")
                 }
                 
                 override fun onError(e: Exception) {
@@ -120,8 +121,8 @@ class CardPaymentFragment : Fragment() {
         stripe.onPaymentResult(
             requestCode,
             data,
-            object : com.stripe.android.ApiResultCallback<com.stripe.android.model.PaymentIntentResult> {
-                override fun onSuccess(result: com.stripe.android.model.PaymentIntentResult) {
+            object : com.stripe.android.ApiResultCallback<PaymentIntentResult> {
+                override fun onSuccess(result: PaymentIntentResult) {
                     val paymentIntent = result.intent
                     val status = paymentIntent.status ?: ""
                     if (status == "succeeded") {
