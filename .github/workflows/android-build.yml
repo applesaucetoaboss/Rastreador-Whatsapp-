@@ -108,7 +108,7 @@ jobs:
 
       - name: Build APK (assembleDebug)
         run: |
-          ./gradlew assembleDebug --stacktrace -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false
+          ./gradlew assembleDebug --stacktrace -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false --info
         shell: bash
 
       - name: Upload APK artifact
