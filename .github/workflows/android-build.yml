@@ -101,6 +101,14 @@ jobs:
         run: cat app/build.gradle
         shell: bash
 
+      - name: Ensure gradlew has execute permissions
+        run: chmod +x gradlew
+        shell: bash
+
+      - name: Stop any running Gradle daemons
+        run: ./gradlew --stop || true
+        shell: bash
+
       - name: Build APK (assembleDebug)
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
