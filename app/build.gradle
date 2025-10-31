@@ -21,6 +21,12 @@ android {
 
         // provide stripe publishable key via BuildConfig for easy access
         buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", "\"pk_live_51SJvpVAgq1ywLQy0IPutpWNtY9AmGKijmeu0MgxOxsNQEXW1nsdrLuUS0o7aU2Cnki6OwkZ1YhV10nCVcBgRuWjO00jh0pFCLY\""
+        buildConfigField "String", "CREATOR_UNLOCK_CODE", "\"2468\""
+        // backend base url to create PaymentIntent (DO NOT use Stripe secret in app)
+        // Replace with your deployed server URL for production.
+        // For local testing use http://10.0.2.2:4242/ when running on Android emulator
+        // or your machine LAN IP when testing on a physical device.
+        buildConfigField "String", "BACKEND_BASE_URL", "\"http://10.0.2.2:4242/\""
     }
 
     buildTypes {
@@ -48,6 +54,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.cardview:cardview:1.0.0'
     
     // Stripe SDK - using only the official SDK
     implementation 'com.stripe:stripe-android:21.29.1'

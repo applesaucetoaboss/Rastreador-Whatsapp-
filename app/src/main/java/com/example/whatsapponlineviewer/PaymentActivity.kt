@@ -28,9 +28,12 @@ class PaymentActivity : AppCompatActivity() {
             setContentView(binding.root)
 
             viewModel = ViewModelProvider(this)[StatusViewModel::class.java]
-            paymentViewModel = ViewModelProvider(this)[PaymentViewModel::class.java]
+            paymentViewModel = ViewModelProvider(this, com.example.whatsapponlineviewer.payment.PaymentViewModelFactory(this))[
+                PaymentViewModel::class.java
+            ]
 
             setupPaymentMethodSelection()
+            setupBuyPremiumLink()
             
             // Show card payment by default
             showCardPaymentFragment()
@@ -51,6 +54,21 @@ class PaymentActivity : AppCompatActivity() {
             when (checkedId) {
                 R.id.rbCard -> showCardPaymentFragment()
                 R.id.rbSpei -> showSpeiPaymentFragment()
+            }
+        }
+    }
+
+    private fun setupBuyPremiumLink() {
+        // If layout contains a button/link to pay with Stripe Payment Link, wire it here
+        // We will open external browser with provided Payment Link
+        val url = "https://buy.stripe.com/eVqeVcelg8LB6Xr6TH9R601"
+        val buttonId = resources.getIdentifier("btnBuyPremium", "id", packageName)
+        if (buttonId != 0) {
+            val btn = findViewById<android.view.View>(buttonId)
+            btn?.setOnClickListener {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                startActivity(intent)
+                // Note: Configure success URL in Stripe to whatsappviewer://payment-success to auto-mark premium
             }
         }
     }

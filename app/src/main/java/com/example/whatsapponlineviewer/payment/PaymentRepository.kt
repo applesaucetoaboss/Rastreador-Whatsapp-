@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.whatsapponlineviewer.BuildConfig
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.model.ConfirmPaymentIntentParams
+import retrofit2.Response
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
@@ -12,7 +13,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 class PaymentRepository(private val context: Context) {
     private val stripeApiService: StripeApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("https://your-backend-server.com/") // Replace with your actual backend URL
+            // Use your backend to create PaymentIntent and return client secret
+            .baseUrl(BuildConfig.BACKEND_BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(StripeApiService::class.java)
@@ -48,5 +50,20 @@ class PaymentRepository(private val context: Context) {
             paymentMethodId,
             clientSecret
         )
+    }
+
+    suspend fun getPremiumStatus(phone: String): Result<Boolean> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response: Response<PremiumStatusResponse> = stripeApiService.getPremiumStatus(phone)
+                if (response.isSuccessful && response.body() != null) {
+                    Result.success(response.body()!!.premium)
+                } else {
+                    Result.failure(Exception("Failed to fetch premium status: ${response.errorBody()?.string()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
     }
 }

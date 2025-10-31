@@ -58,15 +58,46 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.isPremium.observe(this) { isPremium ->
             if (isPremium) {
-                binding.tvRemainingChecks.text = "Premium Activado"
+                binding.tvRemainingChecks.text = "Premium Activado - Rastreo Ilimitado"
+                binding.cardPromo.visibility = View.GONE
             } else {
-                updateRemainingChecksText()
+                binding.tvRemainingChecks.text = "Premium Requerido - Compra para usar la app"
+                binding.cardPromo.visibility = View.VISIBLE
             }
         }
     }
 
     private fun setupListeners() {
+        // Hidden creator unlock: long-press the WhatsApp logo to enter PIN
+        binding.ivWhatsappLogo.setOnLongClickListener {
+            val input = android.widget.EditText(this)
+            input.hint = getString(R.string.creator_unlock_hint)
+            input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+
+            AlertDialog.Builder(this)
+                .setTitle(getString(R.string.creator_unlock_prompt))
+                .setView(input)
+                .setPositiveButton("OK") { _, _ ->
+                    val pin = input.text?.toString()?.trim()
+                    if (pin != null && pin == com.example.whatsapponlineviewer.BuildConfig.CREATOR_UNLOCK_CODE) {
+                        viewModel.setPremium()
+                        Toast.makeText(this, getString(R.string.creator_unlock_success), Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, getString(R.string.creator_unlock_error), Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+            true
+        }
+
         binding.btnCheckStatus.setOnClickListener {
+            // PREMIUM-ONLY: Block all usage until premium is activated
+            if (viewModel.isPremium.value != true) {
+                showPremiumDialog()
+                return@setOnClickListener
+            }
+
             val phoneNumber = binding.etPhoneNumber.text.toString()
             
             if (phoneNumber.length < 7 || phoneNumber.length > 15) {
@@ -74,11 +105,13 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            if (viewModel.canCheckStatus()) {
-                checkStatus(phoneNumber)
-            } else {
-                showPremiumDialog()
+            // Block tracking own number
+            if (viewModel.isOwnNumber(phoneNumber)) {
+                Toast.makeText(this, getString(R.string.own_number_blocked), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+
+            checkStatus(phoneNumber)
         }
     }
 
@@ -101,12 +134,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPremiumDialog() {
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.premium_required))
-            .setMessage("Actualiza a Premium para consultas ilimitadas")
-            .setPositiveButton(getString(R.string.yes)) { _, _ ->
+            .setTitle("Premium Requerido")
+            .setMessage("Esta app requiere Premium para funcionar. Compra Premium para rastrear números de WhatsApp.")
+            .setPositiveButton("Comprar Premium") { _, _ ->
                 startActivity(Intent(this, PaymentActivity::class.java))
             }
-            .setNegativeButton(getString(R.string.no), null)
+            .setNegativeButton("Cancelar", null)
             .show()
     }
 }
