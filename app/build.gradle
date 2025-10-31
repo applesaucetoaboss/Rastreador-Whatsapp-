@@ -52,7 +52,7 @@ android {
 // Force Kotlin coroutines to a version compatible with Kotlin 2.1.0 metadata
 configurations.all {
     resolutionStrategy {
-        // Align coroutines with Kotlin 2.0+/2.2 metadata compatibility
+        // Align coroutines with Kotlin 2.0.x compatibility
         force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1'
         force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1'
         force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
@@ -64,13 +64,17 @@ configurations.all {
             if (details.requested.group == 'org.jetbrains.kotlinx' && details.requested.name.startsWith('kotlinx-coroutines')) {
                 details.useVersion '1.8.1'
             }
+            if (details.requested.group == 'org.jetbrains.kotlin' && details.requested.name.startsWith('kotlin-')) {
+                // Keep all kotlin modules at 2.0.21 to avoid transitive bumps
+                details.useVersion '2.0.21'
+            }
         }
     }
 }
 
 dependencies {
-    // Align Kotlin stdlib to plugin version 2.2.20
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.2.20"
+    // Align Kotlin stdlib to plugin version 2.0.21
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
