@@ -52,18 +52,9 @@ android {
 // Force Kotlin coroutines to a version compatible with Kotlin 2.1.0 metadata
 configurations.all {
     resolutionStrategy {
-        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
-        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3'
-        force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-        // Hard-pin activity libraries to avoid transitive upgrades to 1.9.x
-        force 'androidx.activity:activity:1.7.2'
-        force 'androidx.activity:activity-ktx:1.7.2'
-
-        eachDependency { details ->
-            if (details.requested.group == 'org.jetbrains.kotlinx' && details.requested.name.startsWith('kotlinx-coroutines')) {
-                details.useVersion '1.7.3'
-            }
-        }
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1'
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1'
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
     }
 }
 
@@ -80,18 +71,15 @@ dependencies {
     // Further downgrade to avoid Kotlin 2.1.0 metadata causing D8 errors
     implementation 'com.stripe:stripe-android:21.20.0'
 
-    // Explicitly declare coroutines-android to ensure alignment
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    // Explicitly declare coroutines-core-jvm to override transitive pulls to 1.10.x
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3'
+    // Explicitly declare coroutines to ensure alignment
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1'
 
-    // Add constraints to keep any coroutines modules at 1.7.3
+    // Add constraints to keep coroutines modules at 1.8.1
     constraints {
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3')
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3')
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3')
-        implementation('androidx.activity:activity:1.7.2')
-        implementation('androidx.activity:activity-ktx:1.7.2')
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1')
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1')
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1')
     }
 
     
@@ -101,8 +89,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:5.2.1'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2'
     implementation 'androidx.lifecycle:lifecycle-process:2.6.2'
-    implementation 'androidx.activity:activity:1.7.2'
-    implementation 'androidx.activity:activity-ktx:1.7.2'
+    implementation 'androidx.activity:activity:1.8.2'
+    implementation 'androidx.activity:activity-ktx:1.8.2'
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
 
     testImplementation 'junit:junit:4.13.2'

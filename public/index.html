@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rastreador-Whatsapp — Backend Functions</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif; margin: 2rem; }
+      code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 4px; }
+      a { color: #0b74de; }
+    </style>
+  </head>
+  <body>
+    <h1>Backend is live</h1>
+    <p>This site hosts Netlify Functions for the Android app.</p>
+    <ul>
+      <li>Create PaymentIntent: <code>/create-payment-intent</code></li>
+      <li>Premium Status: <code>/premium-status?phone=+15551234567</code></li>
+    </ul>
+    <p>
+      If you see errors, ensure the environment variable <code>STRIPE_SECRET_KEY</code> is set in Netlify.
+      You can test the payment endpoint:
+    </p>
+    <pre>
+curl -s -X POST "https://&lt;your-site&gt;.netlify.app/create-payment-intent" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 999, "currency": "usd"}'
+    </pre>
+  </body>
+  </html>

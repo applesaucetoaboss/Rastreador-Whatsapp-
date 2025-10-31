@@ -74,23 +74,28 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
         shell: bash
 
-      - name: If there's a zip, list and unzip to extracted/ then merge into repo root
+      - name: Skip zip merge when project files already exist
         run: |
           set -euo pipefail
-          mkdir -p extracted
-          shopt -s nullglob || true
-          zips=( *.zip )
-          if [ "${#zips[@]}" -gt 0 ]; then
-            echo "ZIP files found: ${zips[*]}"
-            for z in "${zips[@]}"; do
-              echo "Unzipping $z -> extracted/"
-              unzip -o "$z" -d extracted
-            done
-            echo "Merging extracted contents into repo root (preserving .git)"
-            rsync -a --exclude '.git' extracted/ ./
-            ls -la
+          if [ -f build.gradle ] && [ -f app/build.gradle ] && [ -f settings.gradle ]; then
+            echo "Gradle project detected; skipping zip merge."
           else
-            echo "No zip files found in repo root."
+            echo "Project files missing; checking for zip archives to hydrate."
+            mkdir -p extracted
+            shopt -s nullglob || true
+            zips=( *.zip )
+            if [ "${#zips[@]}" -gt 0 ]; then
+              echo "ZIP files found: ${zips[*]}"
+              for z in "${zips[@]}"; do
+                echo "Unzipping $z -> extracted/"
+                unzip -o "$z" -d extracted
+              done
+              echo "Merging extracted contents into repo root (preserving .git)"
+              rsync -a --exclude '.git' extracted/ ./
+              ls -la
+            else
+              echo "No zip files found in repo root."
+            fi
           fi
         shell: bash
 
@@ -178,7 +183,7 @@ jobs:
           if [ -f dependencies-debugRuntimeClasspath.txt ]; then cp -f dependencies-debugRuntimeClasspath.txt gh_actions_logs/${{ github.run_id }}/dependencies-debugRuntimeClasspath.txt; fi
           # record minimal env info
           ./gradlew -v > gh_actions_logs/${{ github.run_id }}/gradle-env.txt || true
-          echo "AGP_VERSION=8.6.1" > gh_actions_logs/${{ github.run_id }}/env.txt
+          echo "AGP_VERSION=8.7.0" > gh_actions_logs/${{ github.run_id }}/env.txt
           echo "JAVA_VERSION=$(java -version 2>&1 | head -n1)" >> gh_actions_logs/${{ github.run_id }}/env.txt
           echo "RUN_ID=${{ github.run_id }}" >> gh_actions_logs/${{ github.run_id }}/env.txt
           # prepare git and push to ci-logs branch
