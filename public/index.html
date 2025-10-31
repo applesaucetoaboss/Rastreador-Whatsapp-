@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API de Suscripción</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; margin: 2rem; }
+      code { background: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Endpoints de Netlify Functions</h1>
+    <ul>
+      <li><code>/create-subscription</code> → crea suscripción (180 MXN/mes)</li>
+      <li><code>/create-payment-intent</code> → PaymentIntent de prueba</li>
+      <li><code>/premium-status?phone=</code> → estado premium (demo)</li>
+    </ul>
+    <p>Configure variables en Netlify: <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_PRICE_MXN_180_MONTHLY</code>, <code>STRIPE_WEBHOOK_SECRET</code> (si usas webhook en tu servidor).</p>
+  </body>
+  </html>

@@ -10,6 +10,9 @@
   "dependencies": {
     "stripe": "^16.6.0"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "author": "Generated",
   "license": "MIT"
 }
