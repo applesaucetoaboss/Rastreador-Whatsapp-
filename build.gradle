@@ -9,8 +9,8 @@ buildscript {
     dependencies {
         // Align AGP with Gradle 8.7 for compatibility
         classpath 'com.android.tools.build:gradle:8.6.1'
-        // Use Kotlin 1.9.24 for broad AGP 8.6.x compatibility
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24"
+        // Align Kotlin Gradle plugin with transitive stdlib observed in CI
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20"
     }
 }
 
