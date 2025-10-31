@@ -94,10 +94,11 @@ jobs:
           if [ ! -f ./gradlew ] || grep -q "placeholder gradlew" ./gradlew 2>/dev/null || grep -q "placeholder gradlew" ./gradlew.bat 2>/dev/null; then
             echo "Gradle wrapper missing or placeholder detected — generating wrapper with downloaded gradle"
             gradle wrapper --gradle-version 8.7
-            chmod +x ./gradlew || true
           else
             echo "Gradle wrapper appears present and not placeholder"
           fi
+          # Always ensure gradlew is executable on Linux runners
+          chmod +x ./gradlew || true
         shell: bash
 
       
@@ -178,10 +179,16 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git fetch origin ci-logs || true
-          git checkout -B ci-logs
+          # Base local ci-logs on remote if it exists; otherwise create new
+          if git show-ref --verify --quiet refs/remotes/origin/ci-logs; then
+            git checkout -B ci-logs origin/ci-logs
+          else
+            git checkout -B ci-logs
+          fi
           git add gh_actions_logs/${{ github.run_id }}/
           git commit -m "CI build log for run ${{ github.run_id }} [skip ci]" || true
-          git push origin ci-logs
+          # Push with lease to avoid non-fast-forward rejection
+          git push --force-with-lease origin ci-logs
         shell: bash
 
   release:
@@ -244,5 +251,10 @@ jobs:
       - name: Install server deps and run basic check
         working-directory: server
         run: |
-          npm ci
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
           node -e "console.log('Server files present; Stripe version ok')"
