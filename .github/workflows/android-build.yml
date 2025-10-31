@@ -101,6 +101,19 @@ jobs:
           fi
         shell: bash
 
+      - name: Print debugRuntimeClasspath dependency tree (diagnostics)
+        run: |
+          set -euo pipefail
+          ./gradlew :app:dependencies --configuration debugRuntimeClasspath --no-daemon --console=plain | tee dependencies-debugRuntimeClasspath.txt
+        shell: bash
+
+      - name: Upload dependency tree artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debugRuntimeClasspath-dependencies
+          path: dependencies-debugRuntimeClasspath.txt
+
 
 
       - name: Cache Gradle packages
