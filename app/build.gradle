@@ -55,6 +55,12 @@ configurations.all {
         force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
         force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0'
         force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+
+        eachDependency { details ->
+            if (details.requested.group == 'org.jetbrains.kotlinx' && details.requested.name.startsWith('kotlinx-coroutines')) {
+                details.useVersion '1.9.0'
+            }
+        }
     }
 }
 
@@ -73,6 +79,15 @@ dependencies {
 
     // Explicitly declare coroutines-android to ensure alignment
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    // Explicitly declare coroutines-core-jvm to override transitive pulls to 1.10.x
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0'
+
+    // Add constraints to keep any coroutines modules at 1.9.0
+    constraints {
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0')
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0')
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0')
+    }
 
     
     // For API calls
