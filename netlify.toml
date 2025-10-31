@@ -17,3 +17,9 @@
   to = "/.netlify/functions/premium-status"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/create-subscription"
+  to = "/.netlify/functions/create-subscription"
+  status = 200
+  force = true

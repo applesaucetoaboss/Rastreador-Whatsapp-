@@ -19,21 +19,35 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        // provide stripe publishable key via BuildConfig for easy access
-        buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", "\"pk_live_51SJvpVAgq1ywLQy0IPutpWNtY9AmGKijmeu0MgxOxsNQEXW1nsdrLuUS0o7aU2Cnki6OwkZ1YhV10nCVcBgRuWjO00jh0pFCLY\""
-        buildConfigField "String", "CREATOR_UNLOCK_CODE", "\"2468\""
+        // Stripe publishable key injected via BuildConfig for client-side SDK
+        // Use test key in repo; prefer injecting live key via CI or local properties
+        def stripeKeyProp = project.findProperty('STRIPE_PUBLISHABLE_KEY') ?: System.getenv('STRIPE_PUBLISHABLE_KEY') ?: 'pk_test_ReplaceWithYourKey'
+        buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", "\"${stripeKeyProp}\""
         // backend base url to create PaymentIntent (DO NOT use Stripe secret in app)
         // Replace with your deployed server URL for production.
         // For local testing use http://10.0.2.2:4242/ when running on Android emulator
         // or your machine LAN IP when testing on a physical device.
         // Netlify site base URL; functions are routed via netlify.toml
-        buildConfigField "String", "BACKEND_BASE_URL", "\"https://lovely-longma-d79e1b.netlify.app/\""
+        def backendBaseUrlProp = project.findProperty('BACKEND_BASE_URL') ?: System.getenv('BACKEND_BASE_URL') ?: 'https://lovely-longma-d79e1b.netlify.app/'
+        buildConfigField "String", "BACKEND_BASE_URL", "\"${backendBaseUrlProp}\""
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Sign release if keystore.properties is present
+            if (file('../keystore.properties').exists()) {
+                def keystoreProps = new Properties()
+                keystoreProps.load(new FileInputStream(file('../keystore.properties')))
+                signingConfig signingConfigs.create('releaseConfig') {
+                    storeFile file(keystoreProps['storeFile'] ?: '')
+                    storePassword keystoreProps['storePassword'] ?: ''
+                    keyAlias keystoreProps['keyAlias'] ?: ''
+                    keyPassword keystoreProps['keyPassword'] ?: ''
+                }
+                signingConfig signingConfigs.releaseConfig
+            }
         }
     }
 
@@ -49,32 +63,10 @@ android {
     namespace 'com.example.whatsapponlineviewer'
 }
 
-// Force Kotlin coroutines to a version compatible with Kotlin 2.1.0 metadata
-configurations.all {
-    resolutionStrategy {
-        // Align coroutines with Kotlin 2.0.x compatibility
-        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1'
-        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1'
-        force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
-        // Hard-pin activity libraries to avoid transitive upgrades to 1.9.x
-        force 'androidx.activity:activity:1.7.2'
-        force 'androidx.activity:activity-ktx:1.7.2'
-
-        eachDependency { details ->
-            if (details.requested.group == 'org.jetbrains.kotlinx' && details.requested.name.startsWith('kotlinx-coroutines')) {
-                details.useVersion '1.8.1'
-            }
-            if (details.requested.group == 'org.jetbrains.kotlin' && details.requested.name.startsWith('kotlin-')) {
-                // Keep all kotlin modules at 2.0.21 to avoid transitive bumps
-                details.useVersion '2.0.21'
-            }
-        }
-    }
-}
+// Keep dependency versions straightforward; avoid over-forcing to reduce conflicts
 
 dependencies {
-    // Align Kotlin stdlib to plugin version 2.0.21
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
+    // Kotlin stdlib provided by plugin; no explicit dependency needed
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
@@ -84,18 +76,9 @@ dependencies {
     // Stripe SDK - use a stable version; adjust if metadata issues persist
     implementation 'com.stripe:stripe-android:21.20.0'
 
-    // Explicitly declare coroutines to ensure alignment
+    // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1'
-
-    // Add constraints to keep any coroutines modules at 1.8.1
-    constraints {
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1')
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1')
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1')
-        implementation('androidx.activity:activity:1.7.2')
-        implementation('androidx.activity:activity-ktx:1.7.2')
-    }
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1'
 
     
     // For API calls
