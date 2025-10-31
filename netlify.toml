@@ -11,3 +11,9 @@
   to = "/.netlify/functions/create-payment-intent"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/premium-status"
+  to = "/.netlify/functions/premium-status"
+  status = 200
+  force = true

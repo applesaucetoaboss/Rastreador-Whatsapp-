@@ -26,7 +26,8 @@ android {
         // Replace with your deployed server URL for production.
         // For local testing use http://10.0.2.2:4242/ when running on Android emulator
         // or your machine LAN IP when testing on a physical device.
-        buildConfigField "String", "BACKEND_BASE_URL", "\"http://10.0.2.2:4242/\""
+        // Netlify site base URL; functions are routed via netlify.toml
+        buildConfigField "String", "BACKEND_BASE_URL", "\"https://lovely-longma-d79e1b.netlify.app/\""
     }
 
     buildTypes {
