@@ -58,9 +58,9 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.cardview:cardview:1.0.0'
     
-    // Stripe SDK - pin to version compiled with Kotlin metadata <= 2.0.0
-    // This avoids D8/kotlinx-metadata-jvm errors with future metadata versions
-    implementation 'com.stripe:stripe-android:21.26.0'
+    // Stripe SDK - pin to a version compiled with Kotlin <= 2.0 metadata
+    // Further downgrade to avoid Kotlin 2.1.0 metadata causing D8 errors
+    implementation 'com.stripe:stripe-android:21.20.0'
 
     
     // For API calls
