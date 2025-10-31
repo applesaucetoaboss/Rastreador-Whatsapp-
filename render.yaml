@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: rastreador-whatsapp-server
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install --prefix server
+    startCommand: npm start --prefix server
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_MXN_180_MONTHLY
+        sync: false
+
