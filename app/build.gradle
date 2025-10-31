@@ -49,6 +49,15 @@ android {
     namespace 'com.example.whatsapponlineviewer'
 }
 
+// Force Kotlin coroutines to a version compatible with Kotlin 1.9.x / D8 (≤ 2.0.0 metadata)
+configurations.all {
+    resolutionStrategy {
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0'
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    }
+}
+
 dependencies {
     // Rely on plugin-managed stdlib or align explicitly to 1.9.24
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"
@@ -61,6 +70,9 @@ dependencies {
     // Stripe SDK - pin to a version compiled with Kotlin <= 2.0 metadata
     // Further downgrade to avoid Kotlin 2.1.0 metadata causing D8 errors
     implementation 'com.stripe:stripe-android:21.20.0'
+
+    // Explicitly declare coroutines-android to ensure alignment
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
 
     
     // For API calls
