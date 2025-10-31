@@ -36,7 +36,7 @@ jobs:
 
 
       - name: Set GRADLE_VERSION environment variable
-        run: echo "GRADLE_VERSION=8.13" >> $GITHUB_ENV
+        run: echo "GRADLE_VERSION=8.7" >> $GITHUB_ENV
         shell: bash
 
       - name: Install Gradle CLI 8.0.2 (for wrapper generation)
@@ -94,7 +94,7 @@ jobs:
           # Use the downloaded Gradle CLI (in PATH) to generate a real wrapper if needed
           if [ ! -f ./gradlew ] || grep -q "placeholder gradlew" ./gradlew 2>/dev/null || grep -q "placeholder gradlew" ./gradlew.bat 2>/dev/null; then
             echo "Gradle wrapper missing or placeholder detected — generating wrapper with downloaded gradle"
-            gradle wrapper --gradle-version 8.13
+            gradle wrapper --gradle-version 8.7
             chmod +x ./gradlew || true
           else
             echo "Gradle wrapper appears present and not placeholder"
@@ -126,7 +126,15 @@ jobs:
         run: |
           set -euo pipefail
           export TERM=dumb
-          ./gradlew assembleDebug --no-daemon --stacktrace --info --refresh-dependencies --scan
+          # Capture full gradle output to a file, then on failure print a concise summary
+          ./gradlew assembleDebug --no-daemon --stacktrace --console=plain --info --refresh-dependencies | tee build.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "\n--- Build failed: concise error summary (last 300 lines) ---"
+            tail -n 300 build.log
+            echo "--- End summary ---\n"
+          fi
+          exit "$EXIT_CODE"
         shell: bash
 
       - name: Upload APK artifact
@@ -135,3 +143,9 @@ jobs:
         with:
           name: app-debug-apk
           path: app/build/outputs/**/*.apk
+      - name: Upload Gradle build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: build.log
