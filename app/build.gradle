@@ -87,6 +87,8 @@ dependencies {
         implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3')
         implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3')
         implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3')
+        implementation('androidx.activity:activity:1.7.2')
+        implementation('androidx.activity:activity-ktx:1.7.2')
     }
 
     
@@ -96,7 +98,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:5.2.1'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2'
     implementation 'androidx.lifecycle:lifecycle-process:2.6.2'
-    implementation 'androidx.activity:activity-ktx:1.8.2'
+    implementation 'androidx.activity:activity:1.7.2'
+    implementation 'androidx.activity:activity-ktx:1.7.2'
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
 
     testImplementation 'junit:junit:4.13.2'

@@ -7,8 +7,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // Align AGP and Kotlin to versions compatible with Stripe library
-        classpath 'com.android.tools.build:gradle:8.0.2'
+        // Align AGP with Gradle 8.7 for compatibility
+        classpath 'com.android.tools.build:gradle:8.6.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0"
     }
 }
