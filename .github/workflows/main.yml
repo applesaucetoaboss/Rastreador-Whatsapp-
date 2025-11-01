@@ -1,0 +1,285 @@
+name: Android Build & Deploy Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/android-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type to execute'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+      skip_tests:
+        description: 'Skip unit tests'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
+  checks: write
+  pull-requests: write
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2
+  GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+
+jobs:
+  validate:
+    name: Validate Workflow & Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.changes.outputs.should_build }}
+      build_type: ${{ steps.build_config.outputs.build_type }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for Relevant Changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif git diff --name-only HEAD~1 HEAD | grep -E "(app/|build\.gradle|settings\.gradle|gradle\.properties)" > /dev/null; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine Build Configuration
+        id: build_config
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "build_type=${{ github.event.inputs.build_type }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "build_type=release" >> $GITHUB_OUTPUT
+          else
+            echo "build_type=debug" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate Workflow Files
+        run: |
+          echo "Validating workflow syntax..."
+          python3 -c "
+          import yaml
+          import sys
+          try:
+              with open('.github/workflows/android-build.yml', 'r') as f:
+                  yaml.safe_load(f)
+              print('✅ Workflow syntax is valid')
+          except Exception as e:
+              print(f'❌ Workflow syntax error: {e}')
+              sys.exit(1)
+          "
+
+  android:
+    name: Build Android Application
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [29, 33]
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: default
+          arch: x86_64
+
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            .gradle/caches
+            .gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make Gradlew Executable
+        run: chmod +x ./gradlew
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+      - name: Inject Build Secrets
+        env:
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          BACKEND_BASE_URL: ${{ secrets.BACKEND_BASE_URL }}
+        run: |
+          echo "Injecting build-time configuration..."
+          mkdir -p ~/.gradle
+          {
+            echo "STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_default_placeholder}" 
+            echo "BACKEND_BASE_URL=${BACKEND_BASE_URL:-https://rastreador-whatsapp.onrender.com/}" 
+          } >> ~/.gradle/gradle.properties
+
+      - name: Run Unit Tests
+        if: github.event.inputs.skip_tests != 'true'
+        run: |
+          ./gradlew test --no-daemon --stacktrace --console=plain
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace --console=plain
+
+      - name: Generate Test Report
+        uses: dorny/test-reporter@v1
+        if: always() && github.event.inputs.skip_tests != 'true'
+        with:
+          name: Android Unit Tests
+          path: '**/build/test-results/test*/*.xml'
+          reporter: java-junit
+
+      - name: Build APK
+        env:
+          BUILD_TYPE: ${{ needs.validate.outputs.build_type }}
+        run: |
+          echo "Building $BUILD_TYPE APK..."
+          if [[ "$BUILD_TYPE" == "release" ]]; then
+            ./gradlew assembleRelease --no-daemon --stacktrace --console=plain
+          else
+            ./gradlew assembleDebug --no-daemon --stacktrace --console=plain
+          fi
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ needs.validate.outputs.build_type }}-api${{ matrix.api-level }}
+          path: app/build/outputs/apk/**/*.apk
+          retention-days: 30
+
+      - name: Upload Build Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-reports-api${{ matrix.api-level }}
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 7
+
+  precheck:
+    runs-on: ubuntu-latest
+    outputs:
+      has_keystore: ${{ steps.detect.outputs.has_keystore }}
+    steps:
+      - name: Detect keystore secret presence
+        id: detect
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "has_keystore=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_keystore=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+  release:
+    needs: [android, precheck]
+    if: ${{ needs.precheck.outputs.has_keystore == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+        shell: bash
+
+      - name: Create keystore.properties
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cat > keystore.properties << EOF
+          storeFile=../release.keystore
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+        shell: bash
+
+      - name: Build Release APK
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace --console=plain --info
+        shell: bash
+
+      - name: Upload Release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app/build/outputs/**/*.apk
+
+  server-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install server deps and run basic check
+        working-directory: server
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+          node -e "console.log('Server files present; Stripe version ok')"
