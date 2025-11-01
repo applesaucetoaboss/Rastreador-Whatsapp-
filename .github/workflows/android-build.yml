@@ -167,8 +167,12 @@ jobs:
         if: always() && github.event.inputs.skip_tests != 'true'
         with:
           name: Android Unit Tests
-          path: '**/build/test-results/test*/*.xml'
+          path: |
+            **/build/test-results/**/TEST-*.xml
+            app/build/test-results/test*/**/*.xml
           reporter: java-junit
+          commit: ${{ github.sha }}
+          fail-on-error: false
 
       - name: Build APK
         env:
@@ -249,7 +253,8 @@ jobs:
           storeFile=../release.keystore
           storePassword=${ANDROID_KEYSTORE_PASSWORD}
           keyAlias=${ANDROID_KEY_ALIAS}
-          keyPassword=${ANDROID_KEY_PASSWORD}
+          # Fallback to keystore password if key password is not provided
+          keyPassword=${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}
           EOF
         shell: bash
 
