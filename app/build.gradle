@@ -27,8 +27,12 @@ android {
         // Replace with your deployed server URL for production.
         // For local testing use http://10.0.2.2:4242/ when running on Android emulator
         // or your machine LAN IP when testing on a physical device.
-        // Netlify site base URL; functions are routed via netlify.toml
-        def backendBaseUrlProp = project.findProperty('BACKEND_BASE_URL') ?: System.getenv('BACKEND_BASE_URL') ?: 'https://lovely-longma-d79e1b.netlify.app/'
+        // Backend base URL used by Retrofit (must end with '/')
+        // Defaults to Render deployment; override via env or Gradle property.
+        // Example overrides:
+        //   - Env var: BACKEND_BASE_URL=https://rastreador-Whatsapp.onrender.com/
+        //   - Local emulator: http://10.0.2.2:4242/
+        def backendBaseUrlProp = project.findProperty('BACKEND_BASE_URL') ?: System.getenv('BACKEND_BASE_URL') ?: 'https://rastreador-Whatsapp.onrender.com/'
         buildConfigField "String", "BACKEND_BASE_URL", "\"${backendBaseUrlProp}\""
     }
 

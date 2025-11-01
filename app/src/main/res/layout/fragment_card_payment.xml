@@ -9,31 +9,26 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Enter your card details"
-        android:textSize="18sp"
+        android:text="@string/payment_sheet_notice"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
-    <com.stripe.android.view.CardInputWidget
-        android:id="@+id/cardInputWidget"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" />
-        
     <TextView
+        android:id="@+id/tvPrice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Premium Subscription: $9.99"
+        android:text="@string/premium_price_mxn_180"
         android:textSize="16sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"/>
         
     <Button
         android:id="@+id/btnPay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Pay Now"
+        android:text="@string/pay"
         android:textAllCaps="false" />
         
 </LinearLayout>

@@ -2,40 +2,26 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import Stripe from 'stripe'
+import morgan from 'morgan'
 
 dotenv.config()
 
-const app = express()
-app.use(cors({ origin: '*'}))
-
-const stripeSecret = process.env.STRIPE_SECRET_KEY
-if (!stripeSecret) {
-  console.error('Missing STRIPE_SECRET_KEY in environment')
-  process.exit(1)
-}
-const stripe = new Stripe(stripeSecret)
-
-// Create PaymentIntent for card payments
-app.post('/create-payment-intent', async (req, res) => {
-  try {
-    const { amount, currency = 'usd', paymentMethodType = 'card', phone } = req.body || {}
-    if (!amount || typeof amount !== 'number') {
-      return res.status(400).json({ error: 'Invalid amount' })
-    }
-
-    const intent = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      automatic_payment_methods: { enabled: true },
-      metadata: phone ? { phone } : undefined
-    })
-
-    return res.json({ clientSecret: intent.client_secret, id: intent.id })
-  } catch (err) {
-    console.error('create-payment-intent error:', err)
-    return res.status(500).json({ error: err.message })
+// Startup validation for required env vars
+const requiredEnv = ['STRIPE_SECRET_KEY', 'STRIPE_PRICE_MXN_180_MONTHLY', 'STRIPE_WEBHOOK_SECRET'];
+requiredEnv.forEach(key => {
+  if (!process.env[key]) {
+    console.error(`Missing required env var: ${key}`);
+    process.exit(1);
   }
-})
+});
+
+const app = express()
+app.use(cors({ origin: ['http://localhost', 'https://your-production-domain.com'] })); // Tighten CORS for security
+// Basic request logging for observability on Render
+app.use(morgan('combined'))
+
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const stripe = new Stripe(stripeSecret)
 
 // Simple file-backed premium store for demo/prod-lite
 import fs from 'fs'
@@ -89,6 +75,31 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   res.json({ received: true })
 })
 
+// JSON parser for normal API routes (must come AFTER webhook raw route)
+app.use(express.json())
+
+// Create PaymentIntent for card payments
+app.post('/create-payment-intent', async (req, res) => {
+  try {
+    const { amount, currency = 'usd', paymentMethodType = 'card', phone } = req.body || {}
+    if (!amount || typeof amount !== 'number') {
+      return res.status(400).json({ error: 'Invalid amount' })
+    }
+
+    const intent = await stripe.paymentIntents.create({
+      amount,
+      currency,
+      automatic_payment_methods: { enabled: true },
+      metadata: phone ? { phone } : undefined
+    })
+
+    return res.json({ clientSecret: intent.client_secret, id: intent.id })
+  } catch (err) {
+    console.error('create-payment-intent error:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
 // Create Subscription (MXN 180 monthly) and return first invoice PaymentIntent client secret
 app.post('/create-subscription', async (req, res) => {
   try {
@@ -122,9 +133,6 @@ app.post('/create-subscription', async (req, res) => {
     return res.status(500).json({ error: err.message })
   }
 })
-
-// JSON parser for normal API routes (must come AFTER webhook raw route)
-app.use(express.json())
 
 // Serve static files from /public to mirror Netlify publish directory
 app.use(express.static(path.join(process.cwd(), 'public')))

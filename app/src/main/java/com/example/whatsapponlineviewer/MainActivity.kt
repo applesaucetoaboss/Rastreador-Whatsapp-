@@ -68,28 +68,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        // Hidden creator unlock: long-press the WhatsApp logo to enter PIN
-        binding.ivWhatsappLogo.setOnLongClickListener {
-            val input = android.widget.EditText(this)
-            input.hint = getString(R.string.creator_unlock_hint)
-            input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.creator_unlock_prompt))
-                .setView(input)
-                .setPositiveButton("OK") { _, _ ->
-                    val pin = input.text?.toString()?.trim()
-                    if (pin != null && pin == com.example.whatsapponlineviewer.BuildConfig.CREATOR_UNLOCK_CODE) {
-                        viewModel.setPremium()
-                        Toast.makeText(this, getString(R.string.creator_unlock_success), Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this, getString(R.string.creator_unlock_error), Toast.LENGTH_SHORT).show()
-                    }
-                }
-                .setNegativeButton("Cancelar", null)
-                .show()
-            true
-        }
+        // Remove hidden creator unlock backdoor for production
 
         binding.btnCheckStatus.setOnClickListener {
             // PREMIUM-ONLY: Block all usage until premium is activated

@@ -20,39 +20,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/tvPaymentMethod"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="@string/payment_method"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvPaymentTitle" />
-
-    <RadioGroup
-        android:id="@+id/rgPaymentMethod"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvPaymentMethod">
-
-        <RadioButton
-            android:id="@+id/rbCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="@string/card_payment" />
-
-        <RadioButton
-            android:id="@+id/rbSpei"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/spei_payment" />
-    </RadioGroup>
+    <!-- Removed payment method selection; use Stripe PaymentSheet (card) -->
 
     <FrameLayout
         android:id="@+id/paymentContainer"
@@ -62,16 +30,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/rgPaymentMethod" />
+        app:layout_constraintTop_toBottomOf="@+id/tvPaymentTitle" />
 
-    <Button
-        android:id="@+id/btnBuyPremium"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Comprar Premium (Stripe Link)"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginTop="12dp"/>
+    <!-- Removed external Stripe Payment Link button for production integrity -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

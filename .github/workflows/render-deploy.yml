@@ -4,19 +4,77 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'server/**'
+      - 'render.yaml'
+      - '.github/workflows/render-deploy.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-deploy
+  cancel-in-progress: true
 
 jobs:
   trigger-render-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://rastreador-Whatsapp.onrender.com/
     steps:
-      - name: Trigger Render Deploy Hook
+      - name: Validate deploy hook secret presence
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "RENDER_DEPLOY_HOOK_URL not set; skipping deploy trigger"
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL not set; aborting deploy trigger"
             exit 0
           fi
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
 
+      - name: Trigger Render Deploy Hook (retry, log)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+          echo "::group::Triggering Render deploy"
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$HOOK" --retry 3 --retry-connrefused --retry-delay 5)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          STATUS=$(echo "$RESPONSE" | tail -n1)
+          # Avoid echoing sensitive query params if any
+          SAFE_BODY=$(echo "$BODY" | sed 's/key=[^&]*/key=REDACTED/g')
+          echo "HTTP status: $STATUS"
+          echo "Response body: $SAFE_BODY"
+          echo "::endgroup::"
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+            echo "Deploy trigger failed with status $STATUS" >&2
+            exit 1
+          fi
+          {
+            echo "### Render Deploy Trigger"
+            echo "- Status: $STATUS"
+            echo "- Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify service health (poll /health)
+        run: |
+          set -euo pipefail
+          HEALTH_URL="https://rastreador-Whatsapp.onrender.com/health"
+          echo "Polling service health: $HEALTH_URL"
+          max_attempts=12
+          attempt=1
+          until [ $attempt -gt $max_attempts ]; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL") || STATUS=000
+            echo "Attempt $attempt: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Service is healthy"
+              break
+            fi
+            sleep 10
+            attempt=$((attempt+1))
+          done
+          if [ "$STATUS" != "200" ]; then
+            echo "Service health check failed after $max_attempts attempts" >&2
+            exit 1
+          fi

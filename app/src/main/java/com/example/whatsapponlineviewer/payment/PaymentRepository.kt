@@ -28,13 +28,34 @@ class PaymentRepository(private val context: Context) {
     suspend fun createPaymentIntent(amount: Int): Result<PaymentIntentResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val request = PaymentIntentRequest(amount)
+                val prefs = context.getSharedPreferences("whatsapp_tracker", Context.MODE_PRIVATE)
+                val phone = prefs.getString("user_phone_number", null)
+                val request = PaymentIntentRequest(amount = amount, phone = phone)
                 val response = stripeApiService.createPaymentIntent(request)
                 
                 if (response.isSuccessful && response.body() != null) {
                     Result.success(response.body()!!)
                 } else {
                     Result.failure(Exception("Failed to create payment intent: ${response.errorBody()?.string()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun createSubscription(): Result<SubscriptionResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val prefs = context.getSharedPreferences("whatsapp_tracker", Context.MODE_PRIVATE)
+                val phone = prefs.getString("user_phone_number", null)
+                val request = SubscriptionRequest(phone = phone)
+                val response = stripeApiService.createSubscription(request)
+
+                if (response.isSuccessful && response.body() != null) {
+                    Result.success(response.body()!!)
+                } else {
+                    Result.failure(Exception("Failed to create subscription: ${response.errorBody()?.string()}"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)

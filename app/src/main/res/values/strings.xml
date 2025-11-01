@@ -1,52 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Rastreador WhatsApp</string>
-    <string name="app_title">Rastreador de Estado WhatsApp</string>
-    <string name="whatsapp_logo">Logo de WhatsApp</string>
-    <string name="phone_number_hint">Número de teléfono (con código de país)</string>
-    <string name="check_status">Ver Estado</string>
-    <string name="status_label">Estado:</string>
-    <string name="last_seen_label">Última vez visto:</string>
-    <string name="searching">Buscando...</string>
+    <string name="app_name">WhatsApp Online Viewer</string>
+    <string name="app_title">WhatsApp Status Tracker</string>
+    <string name="whatsapp_logo">WhatsApp logo</string>
+    <string name="phone_number_hint">Phone number (with country code)</string>
+    <string name="check_status">Check Status</string>
+    <string name="status_label">Status:</string>
+    <string name="last_seen_label">Last seen:</string>
+    <string name="searching">Searching...</string>
     <string name="online">Online</string>
     <string name="offline">Offline</string>
-    <string name="remaining_checks">Consultas gratuitas restantes: %d</string>
-    <string name="premium_required">Has alcanzado el límite de consultas gratuitas. ¿Deseas actualizar a Premium?</string>
-    <string name="yes">Sí</string>
+    <string name="remaining_checks">Free checks remaining: %d</string>
+    <string name="premium_required">You have reached the free check limit. Upgrade to Premium?</string>
+    <string name="yes">Yes</string>
     <string name="no">No</string>
-    <string name="premium_title">Actualizar a Premium</string>
-    <string name="payment_method">Método de pago</string>
-    <string name="card_payment">Pago con tarjeta</string>
-    <string name="spei_payment">Transferencia SPEI</string>
-    <string name="card_number_hint">Número de tarjeta</string>
-    <string name="expiry_date_hint">MM/AA</string>
+    <string name="premium_title">Upgrade to Premium</string>
+    <string name="payment_method">Payment method</string>
+    <string name="card_payment">Card payment</string>
+    <string name="spei_payment">SPEI transfer</string>
+    <string name="card_number_hint">Card number</string>
+    <string name="expiry_date_hint">MM/YY</string>
     <string name="cvv_hint">CVV</string>
-    <string name="pay">Pagar</string>
-    <string name="payment_success">¡Pago exitoso! Ahora tienes acceso Premium.</string>
-    <string name="payment_error">Error en el pago. Inténtalo de nuevo.</string>
-    <string name="spei_instructions">Realiza una transferencia a la siguiente CLABE:</string>
+    <string name="pay">Pay</string>
+    <string name="payment_success">Payment successful! Premium access is now enabled.</string>
+    <string name="payment_error">Payment error. Please try again.</string>
+    <string name="premium_price_mxn_180">Premium 1 month: $180 MXN</string>
+    <string name="spei_instructions">Make a transfer to the following CLABE:</string>
     <string name="spei_clabe">012345678901234567</string>
-    <string name="spei_reference">Referencia: %s</string>
-    <string name="spei_confirm">He realizado la transferencia</string>
-    <string name="invalid_phone">Por favor ingresa un número válido (7-15 dígitos)</string>
-    <string name="registered_success">Registro exitoso</string>
-    <string name="own_number_blocked">No puedes rastrear tu propio número</string>
-    <string name="free_limit_msg">Límite alcanzado: en gratuito solo puedes rastrear 1 número</string>
-    <string name="premium_limit_msg">Límite alcanzado: solo puedes rastrear 2 números en Premium</string>
+    <string name="spei_reference">Reference: %s</string>
+    <string name="spei_confirm">I have made the transfer</string>
+    <string name="invalid_phone">Please enter a valid number (7–15 digits)</string>
+    <string name="registered_success">Registration successful</string>
+    <string name="own_number_blocked">You cannot track your own number</string>
+    <string name="free_limit_msg">Limit reached: in free mode you can track only 1 number</string>
+    <string name="premium_limit_msg">Limit reached: in Premium you can track only 2 numbers</string>
 
     <!-- Promo / Reviews / Use-cases -->
-    <string name="promo_title">Opiniones de usuarios</string>
+    <string name="promo_title">User reviews</string>
     <string name="promo_stars">★★★★★ 5.0</string>
-    <string name="promo_review_1">“Funciona perfecto, ahora sé si están activos.”</string>
-    <string name="promo_review_2">“Ideal para saber si realmente se fueron a dormir.”</string>
-    <string name="promo_usecases_title">Usos prácticos</string>
-    <string name="promo_usecase_1">¿Sin respuesta? Mira si están activos</string>
-    <string name="promo_usecase_2">¿De verdad se fueron a dormir?</string>
-    <string name="promo_usecase_3">Rastrea hasta dos números para comparación</string>
+    <string name="promo_review_1">“Works perfectly; now I know when they’re active.”</string>
+    <string name="promo_review_2">“Ideal to check if they actually went to sleep.”</string>
+    <string name="promo_usecases_title">Practical use cases</string>
+    <string name="promo_usecase_1">No reply? See if they are active</string>
+    <string name="promo_usecase_2">Did they really go to sleep?</string>
+    <string name="promo_usecase_3">Track up to two numbers for comparison</string>
 
     <!-- Creator unlock -->
-    <string name="creator_unlock_prompt">Ingresa PIN de creador</string>
+    <string name="creator_unlock_prompt">Enter creator PIN</string>
     <string name="creator_unlock_hint">PIN</string>
-    <string name="creator_unlock_success">Modo creador activado: Premium habilitado</string>
-    <string name="creator_unlock_error">PIN incorrecto</string>
-</resources>
+    <string name="creator_unlock_success">Creator mode enabled: Premium activated</string>
+    <string name="creator_unlock_error">Incorrect PIN</string>
+
+    <!-- Payment screen notice -->
+    <string name="payment_sheet_notice">The secure payment sheet will open</string>
+ </resources>

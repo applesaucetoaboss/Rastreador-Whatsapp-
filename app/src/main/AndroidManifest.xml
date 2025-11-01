@@ -25,34 +25,7 @@
             android:name=".PaymentActivity"
             android:exported="false" />
 
-        <activity android:name=".PaymentSuccessActivity"
-            android:exported="true">
-            <!-- Custom scheme deep link (optional) -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="whatsappviewer" android:host="payment-success" />
-            </intent-filter>
-
-            <!-- HTTPS App Link deep link (use this in Stripe success URL) -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="your-domain.com" android:pathPrefix="/payment-success" />
-            </intent-filter>
-
-            <!-- GitHub Pages success URL: https://applesaucetoaboss.github.io/WAStatviewRedirect/payment-success/ -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https"
-                    android:host="applesaucetoaboss.github.io"
-                    android:pathPrefix="/WAStatviewRedirect/payment-success" />
-            </intent-filter>
-        </activity>
+        <!-- Removed deep link auto-unlock activity to prevent bypassing payment verification -->
     </application>
 
 </manifest>

@@ -38,7 +38,7 @@ jobs:
         run: echo "GRADLE_VERSION=8.7" >> $GITHUB_ENV
         shell: bash
 
-      - name: Install Gradle CLI 8.0.2 (for wrapper generation)
+      - name: Install Gradle CLI 8.7 (for wrapper generation)
         run: |
           set -euo pipefail
           GRADLE_VERSION=${{ env.GRADLE_VERSION }}
@@ -191,9 +191,26 @@ jobs:
           git push --force-with-lease origin ci-logs
         shell: bash
 
+  precheck:
+    runs-on: ubuntu-latest
+    outputs:
+      has_keystore: ${{ steps.detect.outputs.has_keystore }}
+    steps:
+      - name: Detect keystore secret presence
+        id: detect
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "has_keystore=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_keystore=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
   release:
-    if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-    needs: android
+    needs: [android, precheck]
+    if: ${{ needs.precheck.outputs.has_keystore == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -221,7 +238,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          cat > keystore.properties << 'EOF'
+          cat > keystore.properties << EOF
           storeFile=../release.keystore
           storePassword=${ANDROID_KEYSTORE_PASSWORD}
           keyAlias=${ANDROID_KEY_ALIAS}

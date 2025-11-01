@@ -14,7 +14,7 @@ class PaymentViewModel(private val context: Context) : ViewModel() {
     val paymentState: LiveData<PaymentState> = _paymentState
     
     private var clientSecret: String? = null
-    
+
     fun createPaymentIntent(amount: Int) {
         _paymentState.value = PaymentState.Loading
         
@@ -29,6 +29,26 @@ class PaymentViewModel(private val context: Context) : ViewModel() {
                     },
                     onFailure = { error ->
                         _paymentState.value = PaymentState.Error("Failed to create payment: ${error.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                _paymentState.value = PaymentState.Error("Error: ${e.message}")
+            }
+        }
+    }
+
+    fun createSubscription() {
+        _paymentState.value = PaymentState.Loading
+        viewModelScope.launch {
+            try {
+                val result = repository.createSubscription()
+                result.fold(
+                    onSuccess = { response ->
+                        clientSecret = response.clientSecret
+                        _paymentState.value = PaymentState.PaymentIntentCreated(response.clientSecret)
+                    },
+                    onFailure = { error ->
+                        _paymentState.value = PaymentState.Error("Failed to create subscription: ${error.message}")
                     }
                 )
             } catch (e: Exception) {

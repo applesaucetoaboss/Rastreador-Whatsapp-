@@ -1,0 +1,30 @@
+# Environment variables
+.env
+server/.env
+
+# Android build outputs
+*.apk
+*.ap_
+*.dex
+build/
+app/build/
+*.class
+
+# Gradle files
+.gradle/
+gradle/
+
+# Local configuration files
+.idea/
+*.iml
+
+# Logs and temp files
+*.log
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+node_modules/
+
+# Other ignores
+default_25_10_23_05_16_16.zip
