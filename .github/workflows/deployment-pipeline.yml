@@ -47,55 +47,22 @@ jobs:
       - name: Configure Deployment
         id: config
         run: |
-          echo "Beginning deployment decision logic..."
-          EVENT="${{ github.event_name }}"
-          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
-          INPUT_ENV="${{ github.event.inputs.environment }}"
-
-          ENVIRONMENT="none"
-          SHOULD_DEPLOY="false"
-
-          if [[ "$EVENT" == "workflow_dispatch" ]]; then
-            ENVIRONMENT="${INPUT_ENV:-staging}"
-            SHOULD_DEPLOY="true"
-            echo "Dispatch trigger detected. environment=$ENVIRONMENT should_deploy=$SHOULD_DEPLOY"
-          elif [[ "$EVENT" == "workflow_run" && "$CONCLUSION" == "success" ]]; then
-            ENVIRONMENT="staging"
-            SHOULD_DEPLOY="true"
-            echo "Workflow run success detected. environment=$ENVIRONMENT should_deploy=$SHOULD_DEPLOY"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
-            ENVIRONMENT="none"
-            SHOULD_DEPLOY="false"
-            echo "Conditions not met. environment=$ENVIRONMENT should_deploy=$SHOULD_DEPLOY (event=$EVENT, conclusion=$CONCLUSION)"
+            echo "environment=none" >> $GITHUB_OUTPUT
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
           fi
-
-          # Emit outputs
-          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
-          echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
-
-          # Set deployment URL based on computed environment (not step outputs)
-          if [[ "$ENVIRONMENT" == "production" ]]; then
-            DEPLOYMENT_URL="https://rastreador-whatsapp.onrender.com"
-          elif [[ "$ENVIRONMENT" == "staging" ]]; then
-            DEPLOYMENT_URL="https://rastreador-whatsapp-staging.onrender.com"
+          
+          # Set deployment URL based on environment
+          if [[ "${{ steps.config.outputs.environment }}" == "production" ]]; then
+            echo "deployment_url=https://rastreador-whatsapp.onrender.com" >> $GITHUB_OUTPUT
           else
-            DEPLOYMENT_URL=""
-          fi
-          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-
-      - name: Log Decision Summary
-        run: |
-          echo "## 🧭 Deployment Decision" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Trigger: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Workflow Run Conclusion: ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Environment: ${{ steps.config.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Should Deploy: ${{ steps.config.outputs.should_deploy }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Deployment URL: ${{ steps.config.outputs.deployment_url || '' }}" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ steps.config.outputs.should_deploy }}" != "true" ]]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### ℹ️ Reason for Skip" >> $GITHUB_STEP_SUMMARY
-            echo "Deployment conditions evaluated to false. Check trigger type and workflow_run conclusion." >> $GITHUB_STEP_SUMMARY
+            echo "deployment_url=https://rastreador-whatsapp-staging.onrender.com" >> $GITHUB_OUTPUT
           fi
 
       - name: Validate Deployment Prerequisites
@@ -104,12 +71,8 @@ jobs:
           echo "Validating deployment prerequisites..."
           
           # Check if required secrets are available
-          HOOK="${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-          if [[ -z "$HOOK" ]]; then
-            HOOK="${{ secrets.RENDER_DEPLOY_HOOK }}"
-          fi
-          if [[ -z "$HOOK" ]]; then
-            echo "❌ Render deploy hook secret not found (checked RENDER_DEPLOY_HOOK_URL and RENDER_DEPLOY_HOOK)"
+          if [[ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]]; then
+            echo "❌ RENDER_DEPLOY_HOOK_URL secret not found"
             exit 1
           fi
           
@@ -196,21 +159,11 @@ jobs:
 
       - name: Trigger Render Deployment
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
           ENVIRONMENT: ${{ needs.prepare-deployment.outputs.environment }}
         run: |
           echo "Triggering Render deployment for $ENVIRONMENT..."
           
-          HOOK="$RENDER_DEPLOY_HOOK_URL"
-          if [ -z "$HOOK" ]; then
-            HOOK="$RENDER_DEPLOY_HOOK"
-          fi
-          if [ -z "$HOOK" ]; then
-            echo "❌ No Render deploy hook found in environment variables (RENDER_DEPLOY_HOOK_URL / RENDER_DEPLOY_HOOK)"
-            exit 1
-          fi
-
           RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$HOOK" \
             --retry 3 --retry-connrefused --retry-delay 5 \
             --max-time ${{ env.DEPLOYMENT_TIMEOUT }})
@@ -316,29 +269,3 @@ jobs:
           else
             echo "❌ Deployment failed. Check logs for details." >> $GITHUB_STEP_SUMMARY
           fi
-
-  notify-skipped:
-    name: Explain Skipped Deployment
-    runs-on: ubuntu-latest
-    needs: [prepare-deployment]
-    if: needs.prepare-deployment.outputs.should_deploy != 'true'
-    steps:
-      - name: Deployment Skipped Summary
-        run: |
-          echo "## 🛑 Deployment Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Trigger: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Workflow Run Conclusion: ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Evaluated Environment: ${{ needs.prepare-deployment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Should Deploy: ${{ needs.prepare-deployment.outputs.should_deploy }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔍 Why This Was Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "The deployment decision logic evaluated to false. Common causes:" >> $GITHUB_STEP_SUMMARY
-          echo "- Non-success conclusion from upstream workflow_run" >> $GITHUB_STEP_SUMMARY
-          echo "- Manual dispatch not used or environment not provided" >> $GITHUB_STEP_SUMMARY
-          echo "- Repository or secrets configuration missing" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ How to Proceed" >> $GITHUB_STEP_SUMMARY
-          echo "- Re-run Android build ensuring it finishes with 'success'" >> $GITHUB_STEP_SUMMARY
-          echo "- Use 'Run workflow' and select environment if dispatching manually" >> $GITHUB_STEP_SUMMARY
-          echo "- Verify required secrets (e.g., RENDER_DEPLOY_HOOK_URL) are configured" >> $GITHUB_STEP_SUMMARY
