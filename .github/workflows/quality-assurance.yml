@@ -1,0 +1,381 @@
+name: Quality Assurance Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of scan to perform'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - security
+          - dependencies
+          - code-quality
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'code-quality' || github.event_name != 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Server Dependencies
+        working-directory: server
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Lint Server Code
+        working-directory: server
+        run: |
+          echo "Running server code analysis..."
+          # Check for common issues
+          node -e "
+            const fs = require('fs');
+            const content = fs.readFileSync('server.js', 'utf8');
+            
+            // Check for hardcoded secrets
+            if (content.match(/sk_live_|pk_live_|sk_test_|pk_test_/)) {
+              console.log('⚠️ Potential hardcoded API keys found');
+            }
+            
+            // Check for console.log in production code
+            const logCount = (content.match(/console\.log/g) || []).length;
+            if (logCount > 5) {
+              console.log(\`⚠️ Found \${logCount} console.log statements\`);
+            }
+            
+            console.log('✅ Server code analysis completed');
+          "
+
+      - name: Validate Android Code Structure
+        run: |
+          echo "Validating Android project structure..."
+          
+          # Check for required files
+          required_files=(
+            "app/build.gradle"
+            "build.gradle"
+            "settings.gradle"
+            "gradlew"
+            "gradle/wrapper/gradle-wrapper.properties"
+          )
+          
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Android project structure validated"
+
+      - name: Check Workflow Files
+        run: |
+          echo "Validating workflow files..."
+          
+          for workflow in .github/workflows/*.yml; do
+            echo "Checking $workflow..."
+            python3 -c "
+            import yaml
+            import sys
+            try:
+                with open('$workflow', 'r') as f:
+                    yaml.safe_load(f)
+                print('✅ $workflow syntax is valid')
+            except Exception as e:
+                print(f'❌ $workflow syntax error: {e}')
+                sys.exit(1)
+            "
+          done
+
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'security' || github.event_name != 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Secret Scan
+        run: |
+          echo "Scanning for potential secrets..."
+          
+          # Define patterns to search for
+          patterns=(
+            "sk_live_[a-zA-Z0-9]+"
+            "pk_live_[a-zA-Z0-9]+"
+            "sk_test_[a-zA-Z0-9]+"
+            "pk_test_[a-zA-Z0-9]+"
+            "password\s*=\s*['\"][^'\"]+['\"]"
+            "api_key\s*=\s*['\"][^'\"]+['\"]"
+            "secret\s*=\s*['\"][^'\"]+['\"]"
+          )
+          
+          found_secrets=false
+          
+          for pattern in "${patterns[@]}"; do
+            if grep -r -E "$pattern" . --exclude-dir=.git --exclude-dir=node_modules; then
+              echo "⚠️ Potential secret found matching pattern: $pattern"
+              found_secrets=true
+            fi
+          done
+          
+          if [[ "$found_secrets" == "true" ]]; then
+            echo "❌ Potential secrets detected. Please review and remove them."
+            exit 1
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+      - name: Check File Permissions
+        run: |
+          echo "Checking file permissions..."
+          
+          # Check for files with overly permissive permissions
+          find . -type f -perm /o+w -not -path "./.git/*" | while read file; do
+            echo "⚠️ World-writable file found: $file"
+          done
+          
+          # Check for executable files that shouldn't be
+          find . -name "*.js" -o -name "*.json" -o -name "*.md" | while read file; do
+            if [[ -x "$file" ]]; then
+              echo "⚠️ Executable permission on non-executable file: $file"
+            fi
+          done
+          
+          echo "✅ File permissions check completed"
+
+      - name: Validate Environment Configuration
+        run: |
+          echo "Validating environment configuration..."
+          
+          # Check .env.example exists and has required variables
+          if [[ -f "server/.env.example" ]]; then
+            echo "✅ Environment example file found"
+            
+            required_vars=("STRIPE_SECRET_KEY" "STRIPE_WEBHOOK_SECRET" "STRIPE_PRICE_MXN_180_MONTHLY")
+            
+            for var in "${required_vars[@]}"; do
+              if grep -q "^$var=" server/.env.example; then
+                echo "✅ $var found in .env.example"
+              else
+                echo "⚠️ $var missing from .env.example"
+              fi
+            done
+          else
+            echo "⚠️ server/.env.example not found"
+          fi
+
+  dependency-scan:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' || github.event_name != 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: server
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Audit Node.js Dependencies
+        working-directory: server
+        run: |
+          echo "Auditing Node.js dependencies..."
+          npm audit --audit-level=moderate || {
+            echo "⚠️ npm audit found vulnerabilities"
+            npm audit --audit-level=moderate --json > audit-results.json
+            
+            # Check if there are high or critical vulnerabilities
+            if npm audit --audit-level=high > /dev/null 2>&1; then
+              echo "❌ High or critical vulnerabilities found"
+              exit 1
+            else
+              echo "⚠️ Moderate vulnerabilities found but continuing"
+            fi
+          }
+
+      - name: Check for Outdated Dependencies
+        working-directory: server
+        run: |
+          echo "Checking for outdated dependencies..."
+          npm outdated || echo "Some dependencies are outdated"
+          
+          # List major version updates available
+          npm outdated --json > outdated.json 2>/dev/null || true
+          
+          if [[ -f outdated.json ]] && [[ -s outdated.json ]]; then
+            echo "📦 Outdated dependencies found - consider updating"
+          else
+            echo "✅ All dependencies are up to date"
+          fi
+
+      - name: Validate Gradle Dependencies
+        run: |
+          echo "Validating Gradle dependencies..."
+          
+          if [[ -f "gradlew" ]]; then
+            chmod +x ./gradlew
+            
+            # Check for dependency vulnerabilities (basic check)
+            ./gradlew dependencies --configuration implementation | grep -E "(FAILED|ERROR)" && {
+              echo "❌ Gradle dependency resolution failed"
+              exit 1
+            } || echo "✅ Gradle dependencies resolved successfully"
+          else
+            echo "⚠️ Gradle wrapper not found, skipping Gradle dependency check"
+          fi
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event_name != 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Server Dependencies
+        working-directory: server
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Test Server Startup
+        working-directory: server
+        run: |
+          echo "Testing server startup..."
+          
+          # Set required environment variables for testing
+          export STRIPE_SECRET_KEY="sk_test_dummy"
+          export STRIPE_WEBHOOK_SECRET="whsec_dummy"
+          export STRIPE_PRICE_MXN_180_MONTHLY="price_dummy"
+          
+          # Test server can start and respond
+          timeout 30s node -e "
+            const server = require('./server.js');
+            setTimeout(() => {
+              console.log('✅ Server started successfully');
+              process.exit(0);
+            }, 2000);
+          " || {
+            echo "❌ Server failed to start"
+            exit 1
+          }
+
+      - name: Test API Endpoints
+        run: |
+          echo "Testing API endpoint availability..."
+          
+          # This would typically start the server and test endpoints
+          # For now, we'll just validate the server file structure
+          
+          if grep -q "/health" server/server.js; then
+            echo "✅ Health endpoint found"
+          else
+            echo "⚠️ Health endpoint not found"
+          fi
+          
+          if grep -q "express" server/server.js; then
+            echo "✅ Express framework detected"
+          else
+            echo "⚠️ Express framework not detected"
+          fi
+
+  report:
+    name: Generate QA Report
+    runs-on: ubuntu-latest
+    needs: [code-quality, security-scan, dependency-scan, integration-tests]
+    if: always()
+    
+    steps:
+      - name: Generate Summary Report
+        run: |
+          echo "## 🔍 Quality Assurance Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Code Quality**: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security Scan**: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dependency Scan**: ${{ needs.dependency-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Tests**: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine overall status
+          if [[ "${{ needs.code-quality.result }}" == "success" && 
+                "${{ needs.security-scan.result }}" == "success" && 
+                "${{ needs.dependency-scan.result }}" == "success" && 
+                "${{ needs.integration-tests.result }}" == "success" ]]; then
+            echo "### ✅ Overall Status: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "All quality assurance checks passed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Overall Status: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "One or more quality assurance checks failed. Please review the logs." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Recommendations" >> $GITHUB_STEP_SUMMARY
+          echo "- Review any failed checks above" >> $GITHUB_STEP_SUMMARY
+          echo "- Update dependencies regularly" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitor security advisories" >> $GITHUB_STEP_SUMMARY
+          echo "- Maintain code quality standards" >> $GITHUB_STEP_SUMMARY

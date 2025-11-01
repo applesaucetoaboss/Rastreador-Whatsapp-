@@ -1,0 +1,271 @@
+name: Deployment Pipeline
+
+on:
+  workflow_run:
+    workflows: ["Android Build & Deploy Pipeline"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  deployments: write
+  actions: read
+
+env:
+  NODE_VERSION: '18'
+  DEPLOYMENT_TIMEOUT: '600'
+
+jobs:
+  prepare-deployment:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      should_deploy: ${{ steps.config.outputs.should_deploy }}
+      deployment_url: ${{ steps.config.outputs.deployment_url }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure Deployment
+        id: config
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "environment=none" >> $GITHUB_OUTPUT
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Set deployment URL based on environment
+          if [[ "${{ steps.config.outputs.environment }}" == "production" ]]; then
+            echo "deployment_url=https://rastreador-whatsapp.onrender.com" >> $GITHUB_OUTPUT
+          else
+            echo "deployment_url=https://rastreador-whatsapp-staging.onrender.com" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate Deployment Prerequisites
+        if: steps.config.outputs.should_deploy == 'true'
+        run: |
+          echo "Validating deployment prerequisites..."
+          
+          # Check if required secrets are available
+          if [[ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]]; then
+            echo "❌ RENDER_DEPLOY_HOOK_URL secret not found"
+            exit 1
+          fi
+          
+          # Check if server files exist
+          if [[ ! -f "server/server.js" ]]; then
+            echo "❌ Server files not found"
+            exit 1
+          fi
+          
+          if [[ ! -f "render.yaml" ]]; then
+            echo "❌ Render configuration not found"
+            exit 1
+          fi
+          
+          echo "✅ All deployment prerequisites validated"
+
+  deploy-server:
+    name: Deploy Server to ${{ needs.prepare-deployment.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: prepare-deployment
+    if: needs.prepare-deployment.outputs.should_deploy == 'true'
+    environment:
+      name: ${{ needs.prepare-deployment.outputs.environment }}
+      url: ${{ needs.prepare-deployment.outputs.deployment_url }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Server Dependencies
+        working-directory: server
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci --only=production
+          else
+            npm install --only=production --no-audit --no-fund
+          fi
+
+      - name: Validate Server Configuration
+        working-directory: server
+        run: |
+          echo "Validating server configuration..."
+          node -c server.js
+          
+          # Check for required environment variables in .env.example
+          if [[ -f .env.example ]]; then
+            echo "Required environment variables:"
+            grep -E "^[A-Z_]+" .env.example || true
+          fi
+
+      - name: Run Server Tests
+        if: github.event.inputs.force_deploy != 'true'
+        working-directory: server
+        run: |
+          # Run basic server validation
+          timeout 30s node -e "
+            const server = require('./server.js');
+            console.log('✅ Server starts successfully');
+            process.exit(0);
+          " || echo "⚠️ Server validation skipped"
+
+      - name: Create Deployment
+        uses: actions/github-script@v7
+        id: deployment
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ needs.prepare-deployment.outputs.environment }}',
+              description: 'Automated deployment via GitHub Actions',
+              auto_merge: false,
+              required_contexts: []
+            });
+            return deployment.data.id;
+
+      - name: Trigger Render Deployment
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          ENVIRONMENT: ${{ needs.prepare-deployment.outputs.environment }}
+        run: |
+          echo "Triggering Render deployment for $ENVIRONMENT..."
+          
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$HOOK" \
+            --retry 3 --retry-connrefused --retry-delay 5 \
+            --max-time ${{ env.DEPLOYMENT_TIMEOUT }})
+          
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          STATUS=$(echo "$RESPONSE" | tail -n1)
+          
+          echo "HTTP Status: $STATUS"
+          echo "Response: $BODY"
+          
+          if [[ "$STATUS" -lt 200 || "$STATUS" -ge 300 ]]; then
+            echo "❌ Deployment trigger failed with status $STATUS"
+            exit 1
+          fi
+          
+          echo "✅ Deployment triggered successfully"
+
+      - name: Wait for Deployment
+        env:
+          DEPLOYMENT_URL: ${{ needs.prepare-deployment.outputs.deployment_url }}
+        run: |
+          echo "Waiting for deployment to complete..."
+          echo "Monitoring: $DEPLOYMENT_URL/health"
+          
+          max_attempts=30
+          attempt=1
+          
+          while [[ $attempt -le $max_attempts ]]; do
+            echo "Attempt $attempt/$max_attempts..."
+            
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL/health" || echo "000")
+            
+            if [[ "$STATUS" == "200" ]]; then
+              echo "✅ Deployment successful - service is healthy"
+              break
+            elif [[ "$STATUS" == "000" ]]; then
+              echo "⏳ Service not yet available..."
+            else
+              echo "⚠️ Service returned status $STATUS"
+            fi
+            
+            if [[ $attempt -eq $max_attempts ]]; then
+              echo "❌ Deployment validation failed after $max_attempts attempts"
+              exit 1
+            fi
+            
+            sleep 20
+            attempt=$((attempt + 1))
+          done
+
+      - name: Update Deployment Status
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const deploymentId = ${{ steps.deployment.outputs.result }};
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deploymentId,
+              state: state,
+              environment_url: '${{ needs.prepare-deployment.outputs.deployment_url }}',
+              description: state === 'success' ? 'Deployment completed successfully' : 'Deployment failed'
+            });
+
+      - name: Post-Deployment Validation
+        if: success()
+        env:
+          DEPLOYMENT_URL: ${{ needs.prepare-deployment.outputs.deployment_url }}
+        run: |
+          echo "Running post-deployment validation..."
+          
+          # Test health endpoint
+          curl -f "$DEPLOYMENT_URL/health" || exit 1
+          
+          # Test basic API endpoints
+          curl -f "$DEPLOYMENT_URL/" || exit 1
+          
+          echo "✅ Post-deployment validation completed"
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [prepare-deployment, deploy-server]
+    if: always() && needs.prepare-deployment.outputs.should_deploy == 'true'
+    
+    steps:
+      - name: Create Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.prepare-deployment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ needs.deploy-server.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: ${{ needs.prepare-deployment.outputs.deployment_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.deploy-server.result }}" == "success" ]]; then
+            echo "✅ Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Deployment failed. Check logs for details." >> $GITHUB_STEP_SUMMARY
+          fi

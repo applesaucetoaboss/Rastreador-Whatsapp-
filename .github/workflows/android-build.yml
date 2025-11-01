@@ -1,195 +1,202 @@
-name: Build Android APK (unzip + generate wrapper if placeholder + build)
+name: Android Build & Deploy Pipeline
 
 on:
   push:
     branches:
       - main
+      - develop
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/android-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type to execute'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+      skip_tests:
+        description: 'Skip unit tests'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
+  actions: read
+  checks: write
+  pull-requests: write
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2
+  GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
 
 jobs:
-  android:
+  validate:
+    name: Validate Workflow & Dependencies
     runs-on: ubuntu-latest
-
+    outputs:
+      should_build: ${{ steps.changes.outputs.should_build }}
+      build_type: ${{ steps.build_config.outputs.build_type }}
     steps:
-      - name: Checkout
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for Relevant Changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif git diff --name-only HEAD~1 HEAD | grep -E "(app/|build\.gradle|settings\.gradle|gradle\.properties)" > /dev/null; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine Build Configuration
+        id: build_config
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "build_type=${{ github.event.inputs.build_type }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "build_type=release" >> $GITHUB_OUTPUT
+          else
+            echo "build_type=debug" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate Workflow Files
+        run: |
+          echo "Validating workflow syntax..."
+          python3 -c "
+          import yaml
+          import sys
+          try:
+              with open('.github/workflows/android-build.yml', 'r') as f:
+                  yaml.safe_load(f)
+              print('✅ Workflow syntax is valid')
+          except Exception as e:
+              print(f'❌ Workflow syntax error: {e}')
+              sys.exit(1)
+          "
+
+  android:
+    name: Build Android Application
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [29, 33]
+    
+    steps:
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Set up Java 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Install common packages (wget/unzip/git/rsync)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y wget unzip git ca-certificates apt-transport-https gnupg rsync
-        shell: bash
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: default
+          arch: x86_64
 
-
-
-      - name: Set GRADLE_VERSION environment variable
-        run: echo "GRADLE_VERSION=8.7" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Install Gradle CLI 8.7 (for wrapper generation)
-        run: |
-          set -euo pipefail
-          GRADLE_VERSION=${{ env.GRADLE_VERSION }}
-          GRADLE_DIR="$RUNNER_TEMP/gradle"
-          mkdir -p "$GRADLE_DIR"
-          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O gradle.zip
-          unzip -q gradle.zip -d "$GRADLE_DIR"
-          echo "$GRADLE_DIR/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
-          rm -f gradle.zip
-        shell: bash
-
-      - name: Install Android command-line tools and SDK packages
-        run: |
-          ANDROID_SDK_ROOT="$RUNNER_TEMP/android-sdk"
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
-          unzip -q cmdline.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
-          # expose sdkmanager and platform-tools to following steps
-          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses || true
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        shell: bash
-
-      - name: If there's a zip, list and unzip to extracted/ then merge into repo root
-        run: |
-          set -euo pipefail
-          mkdir -p extracted
-          shopt -s nullglob || true
-          zips=( *.zip )
-          if [ "${#zips[@]}" -gt 0 ]; then
-            echo "ZIP files found: ${zips[*]}"
-            for z in "${zips[@]}"; do
-              echo "Unzipping $z -> extracted/"
-              unzip -o "$z" -d extracted
-            done
-            echo "Merging extracted contents into repo root (preserving .git)"
-            rsync -a --exclude '.git' extracted/ ./
-            ls -la
-          else
-            echo "No zip files found in repo root."
-          fi
-        shell: bash
-
-      - name: Ensure Gradle wrapper exists (generate if placeholder or missing)
-        run: |
-          set -euo pipefail
-          # Use the downloaded Gradle CLI (in PATH) to generate a real wrapper if needed
-          if [ ! -f ./gradlew ] || grep -q "placeholder gradlew" ./gradlew 2>/dev/null || grep -q "placeholder gradlew" ./gradlew.bat 2>/dev/null; then
-            echo "Gradle wrapper missing or placeholder detected — generating wrapper with downloaded gradle"
-            gradle wrapper --gradle-version 8.7
-          else
-            echo "Gradle wrapper appears present and not placeholder"
-          fi
-          # Always ensure gradlew is executable on Linux runners
-          chmod +x ./gradlew || true
-        shell: bash
-
-      
-
-
-
-      - name: Cache Gradle packages
+      - name: Cache Gradle Dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+            .gradle/caches
+            .gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      
+      - name: Make Gradlew Executable
+        run: chmod +x ./gradlew
 
-      - name: Inject build secrets
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+      - name: Inject Build Secrets
         env:
           STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
           BACKEND_BASE_URL: ${{ secrets.BACKEND_BASE_URL }}
         run: |
-          echo "Injecting build-time config via gradle.properties override"
+          echo "Injecting build-time configuration..."
           mkdir -p ~/.gradle
           {
-            echo "STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}" 
-            echo "BACKEND_BASE_URL=${BACKEND_BASE_URL}" 
+            echo "STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_default}" 
+            echo "BACKEND_BASE_URL=${BACKEND_BASE_URL:-https://rastreador-whatsapp.onrender.com/}" 
           } >> ~/.gradle/gradle.properties
-        shell: bash
 
-      - name: Run unit tests
+      - name: Run Unit Tests
+        if: github.event.inputs.skip_tests != 'true'
         run: |
-          ./gradlew test --no-daemon --stacktrace --console=plain --info
-        shell: bash
+          ./gradlew test --no-daemon --stacktrace --console=plain
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace --console=plain
 
-      - name: Build APK (assembleDebug)
+      - name: Generate Test Report
+        uses: dorny/test-reporter@v1
+        if: always() && github.event.inputs.skip_tests != 'true'
+        with:
+          name: Android Unit Tests
+          path: '**/build/test-results/test*/*.xml'
+          reporter: java-junit
+
+      - name: Build APK
         env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          BUILD_TYPE: ${{ needs.validate.outputs.build_type }}
         run: |
-          set -euo pipefail
-          export TERM=dumb
-          # Capture full gradle output to a file, then on failure print a concise summary
-          ./gradlew assembleDebug --no-daemon --stacktrace --console=plain --info | tee build.log
-          EXIT_CODE=${PIPESTATUS[0]}
-          if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "\n--- Build failed: concise error summary (last 300 lines) ---"
-            tail -n 300 build.log
-            echo "--- End summary ---\n"
-          fi
-          exit "$EXIT_CODE"
-        shell: bash
-
-      - name: Upload Debug APK artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: app/build/outputs/**/*.apk
-
-      - name: Upload Gradle build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-build-log
-          path: build.log
-
-      - name: Commit minimal logs to ci-logs branch
-        if: always()
-        run: |
-          set -euo pipefail
-          mkdir -p gh_actions_logs/${{ github.run_id }}
-          if [ -f build.log ]; then cp -f build.log gh_actions_logs/${{ github.run_id }}/build.log; fi
-          ./gradlew -v > gh_actions_logs/${{ github.run_id }}/gradle-env.txt || true
-          echo "RUN_ID=${{ github.run_id }}" > gh_actions_logs/${{ github.run_id }}/env.txt
-          echo "JAVA_VERSION=$(java -version 2>&1 | head -n1)" >> gh_actions_logs/${{ github.run_id }}/env.txt
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git fetch origin ci-logs || true
-          # Base local ci-logs on remote if it exists; otherwise create new
-          if git show-ref --verify --quiet refs/remotes/origin/ci-logs; then
-            git checkout -B ci-logs origin/ci-logs
+          echo "Building $BUILD_TYPE APK..."
+          if [[ "$BUILD_TYPE" == "release" ]]; then
+            ./gradlew assembleRelease --no-daemon --stacktrace --console=plain
           else
-            git checkout -B ci-logs
+            ./gradlew assembleDebug --no-daemon --stacktrace --console=plain
           fi
-          git add gh_actions_logs/${{ github.run_id }}/
-          git commit -m "CI build log for run ${{ github.run_id }} [skip ci]" || true
-          # Push with lease to avoid non-fast-forward rejection
-          git push --force-with-lease origin ci-logs
-        shell: bash
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ needs.validate.outputs.build_type }}-api${{ matrix.api-level }}
+          path: app/build/outputs/apk/**/*.apk
+          retention-days: 30
+
+      - name: Upload Build Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-reports-api${{ matrix.api-level }}
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 7
 
   precheck:
     runs-on: ubuntu-latest

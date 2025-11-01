@@ -1,4 +1,4 @@
-name: Deploy to Render (server)
+name: Render Server Deployment
 
 on:
   push:
@@ -9,21 +9,119 @@ on:
       - 'render.yaml'
       - '.github/workflows/render-deploy.yml'
   workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
+  deployments: write
 
 concurrency:
-  group: render-deploy
+  group: render-deploy-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '18'
+  HEALTH_CHECK_TIMEOUT: 300
+
 jobs:
-  trigger-render-deploy:
+  validate-changes:
+    name: Validate Deployment Requirements
     runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      changes_detected: ${{ steps.check.outputs.changes_detected }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for Relevant Changes
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "changes_detected=forced" >> $GITHUB_OUTPUT
+            echo "🚀 Force deployment requested"
+          elif git diff --name-only HEAD~1 HEAD | grep -E "(server/|render\.yaml)" > /dev/null; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+            echo "📝 Server changes detected"
+          else
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No server changes detected"
+          fi
+
+      - name: Validate Server Files
+        if: steps.check.outputs.should_deploy == 'true'
+        run: |
+          echo "Validating server files..."
+          
+          required_files=("server/server.js" "server/package.json" "render.yaml")
+          
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "❌ Required file missing: $file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All required files present"
+
+  trigger-render-deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: validate-changes
+    if: needs.validate-changes.outputs.should_deploy == 'true'
     environment:
       name: production
-      url: https://rastreador-Whatsapp.onrender.com/
+      url: https://rastreador-whatsapp.onrender.com/
+    
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Validate Server Configuration
+        working-directory: server
+        run: |
+          echo "Validating server configuration..."
+          
+          # Check Node.js syntax
+          node -c server.js
+          
+          # Validate package.json
+          npm ls --depth=0 > /dev/null || echo "⚠️ Some dependencies may have issues"
+          
+          echo "✅ Server configuration validated"
+
+      - name: Create Deployment Record
+        uses: actions/github-script@v7
+        id: deployment
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'production',
+              description: 'Render server deployment',
+              auto_merge: false,
+              required_contexts: []
+            });
+            return deployment.data.id;
       - name: Validate deploy hook secret presence
         env:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
