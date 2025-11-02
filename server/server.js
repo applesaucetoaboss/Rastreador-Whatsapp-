@@ -36,7 +36,8 @@ app.use(cors({
     /^https:\/\/.*\.onrender\.com$/
   ],
   credentials: true
-}));
+})); // Production CORS configuration
+// Basic request logging for observability on Render
 app.use(morgan('combined'))
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
@@ -47,7 +48,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-// Resolve project paths correctly on Render
+// Ensure paths resolve correctly on Render where cwd is /server
 const projectRoot = path.join(__dirname, '..')
 const publicDir = path.join(projectRoot, 'public')
 const dataDir = path.join(projectRoot, 'data')
@@ -70,7 +71,7 @@ function writePremium(map) {
   }
 }
 
-// Webhook (raw body)
+// Webhook to mark premium after successful payment (use raw body before JSON parser)
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature']
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -97,6 +98,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     }
   }
 
+  // Mark premium on subscription invoice success
   if (event.type === 'invoice.payment_succeeded') {
     try {
       const invoice = event.data.object
@@ -169,10 +171,7 @@ app.post('/create-subscription', async (req, res) => {
       items: [{ price: priceId }],
       payment_behavior: 'default_incomplete',
       expand: ['latest_invoice.payment_intent'],
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      payment_intent_data: {
-        metadata: phone ? { phone } : undefined
-      }
+      payment_settings: { save_default_payment_method: 'on_subscription' }
     })
 
     const pi = subscription.latest_invoice.payment_intent
@@ -184,10 +183,11 @@ app.post('/create-subscription', async (req, res) => {
   }
 })
 
-// Serve static site from /public at repository root
+// Serve static files from /public to mirror Netlify publish directory
+// Serve static site from /public at the project root
 app.use(express.static(publicDir))
 
-// Root route → serve public/index.html
+// Root route: serve index.html to avoid "Cannot GET /" on Render
 app.get('/', (req, res) => {
   try {
     return res.sendFile(path.join(publicDir, 'index.html'))
