@@ -54,7 +54,7 @@ Uso
 Notas de pago
 -------------
 - Este proyecto pagos localmente para la demo.
-- Stripe SDK está incluido (com.stripe:stripe-android:20.20.0). Para pagos reales, debes integrar un backend que genere PaymentIntents y provea client secrets.
+- Stripe SDK está incluido (com.stripe:stripe-android:21.20.0). Para pagos reales, debes integrar un backend que genere PaymentIntents y provea client secrets.
 - Nunca incluyas claves secretas en el cliente. Usa sólo la publishable key en el cliente.
 
 Estructura del proyecto

@@ -35,7 +35,7 @@ android {
         // Backend base URL used by Retrofit (must end with '/')
         // Defaults to Render deployment; override via env or Gradle property.
         // Example overrides:
-        //   - Env var: BACKEND_BASE_URL=https://rastreador-Whatsapp.onrender.com/
+        //   - Env var: BACKEND_BASE_URL=https://rastreador-whatsapp-server.onrender.com/
         //   - Local emulator: http://10.0.2.2:4242/
         def backendBaseUrlProp = project.findProperty('BACKEND_BASE_URL') ?: System.getenv('BACKEND_BASE_URL') ?: 'https://rastreador-whatsapp-server.onrender.com/'
         buildConfigField "String", "BACKEND_BASE_URL", "\"${backendBaseUrlProp}\""

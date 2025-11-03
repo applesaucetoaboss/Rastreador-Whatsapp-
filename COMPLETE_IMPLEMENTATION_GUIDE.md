@@ -352,7 +352,7 @@ Navigate to: `Settings → Secrets and variables → Actions`
 **Required Secrets**:
 ```
 STRIPE_PUBLISHABLE_KEY=pk_test_... (or pk_live_...)
-BACKEND_BASE_URL=https://rastreador-whatsapp.onrender.com/
+BACKEND_BASE_URL=https://rastreador-whatsapp-server.onrender.com/
 ANDROID_KEYSTORE_BASE64=[base64 encoded keystore]
 ANDROID_KEYSTORE_PASSWORD=[keystore password]
 ANDROID_KEY_ALIAS=[key alias]
@@ -389,10 +389,10 @@ curl -s "https://api.github.com/repos/[username]/[repo]/actions/runs?per_page=5"
 ### **3. Deployment Health Verification**
 ```bash
 # Test server health endpoint
-curl -f https://rastreador-whatsapp.onrender.com/health
+curl -f https://rastreador-whatsapp-server.onrender.com/health
 
 # Verify server response
-curl -s https://rastreador-whatsapp.onrender.com/ | head -n 5
+curl -s https://rastreador-whatsapp-server.onrender.com/ | head -n 5
 ```
 
 ### **4. Security Validation**
