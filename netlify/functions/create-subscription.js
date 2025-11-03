@@ -32,8 +32,7 @@ exports.handler = async (event) => {
       items: [{ price: priceId }],
       payment_behavior: 'default_incomplete',
       expand: ['latest_invoice.payment_intent'],
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      payment_intent_data: { metadata: phone ? { phone } : undefined }
+      payment_settings: { save_default_payment_method: 'on_subscription' }
     })
 
     const pi = subscription.latest_invoice.payment_intent
