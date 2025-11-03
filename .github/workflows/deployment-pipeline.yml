@@ -60,7 +60,7 @@ jobs:
           
           # Set deployment URL based on environment
           if [[ "${{ steps.config.outputs.environment }}" == "production" ]]; then
-            echo "deployment_url=https://rastreador-whatsapp.onrender.com" >> $GITHUB_OUTPUT
+            echo "deployment_url=https://rastreador-whatsapp-server.onrender.com" >> $GITHUB_OUTPUT
           else
             echo "deployment_url=https://rastreador-whatsapp-staging.onrender.com" >> $GITHUB_OUTPUT
           fi

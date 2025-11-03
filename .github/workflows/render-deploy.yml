@@ -81,7 +81,7 @@ jobs:
     if: needs.validate-changes.outputs.should_deploy == 'true'
     environment:
       name: production
-      url: https://rastreador-whatsapp.onrender.com/
+      url: https://rastreador-whatsapp-server.onrender.com/
     
     steps:
       - name: Checkout Repository
@@ -158,7 +158,7 @@ jobs:
       - name: Verify service health (poll /health)
         run: |
           set -euo pipefail
-          HEALTH_URL="https://rastreador-Whatsapp.onrender.com/health"
+          HEALTH_URL="https://rastreador-whatsapp-server.onrender.com/health"
           echo "Polling service health: $HEALTH_URL"
           max_attempts=12
           attempt=1

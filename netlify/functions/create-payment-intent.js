@@ -23,7 +23,7 @@ exports.handler = async (event) => {
     const stripe = new Stripe(stripeSecret)
 
     const payload = JSON.parse(event.body || '{}')
-    const { amount, currency = 'usd' } = payload
+    const { amount, currency = 'usd', phone } = payload
 
     if (!amount || typeof amount !== 'number') {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid amount' }) }
@@ -32,7 +32,8 @@ exports.handler = async (event) => {
     const intent = await stripe.paymentIntents.create({
       amount,
       currency,
-      automatic_payment_methods: { enabled: true }
+      automatic_payment_methods: { enabled: true },
+      metadata: phone ? { phone } : undefined
     })
 
     return {

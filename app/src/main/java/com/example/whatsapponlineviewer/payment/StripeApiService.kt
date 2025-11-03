@@ -36,7 +36,8 @@ data class SubscriptionRequest(
 
 data class SubscriptionResponse(
     val clientSecret: String,
-    val subscriptionId: String
+    val subscriptionId: String,
+    val paymentIntentId: String? = null
 )
 
 data class PremiumStatusResponse(
