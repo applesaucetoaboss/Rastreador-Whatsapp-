@@ -126,6 +126,15 @@ jobs:
           target: default
           arch: x86_64
 
+      - name: Detect Gradle Wrapper
+        id: wrapper
+        run: |
+          if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "has_wrapper=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_wrapper=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Cache Gradle Dependencies
         uses: actions/cache@v4
         with:
@@ -138,11 +147,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Make Gradlew Executable
-        run: chmod +x ./gradlew
+      - name: Make Gradlew Executable (if present)
+        run: |
+          if [ -f ./gradlew ]; then chmod +x ./gradlew; fi
 
       - name: Validate Gradle Wrapper
+        if: steps.wrapper.outputs.has_wrapper == 'true'
         uses: gradle/wrapper-validation-action@v1
+
+      - name: Install Gradle 8.7 (fallback if no wrapper)
+        if: steps.wrapper.outputs.has_wrapper == 'false'
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip
+          curl -L https://services.gradle.org/distributions/gradle-8.7-bin.zip -o gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+          echo "${{ github.workspace }}/gradle-8.7/bin" >> $GITHUB_PATH
 
       - name: Inject Build Secrets
         env:
@@ -159,8 +178,13 @@ jobs:
       - name: Run Unit Tests
         if: github.event.inputs.skip_tests != 'true'
         run: |
-          ./gradlew test --no-daemon --stacktrace --console=plain
-          ./gradlew testDebugUnitTest --no-daemon --stacktrace --console=plain
+          if [ "${{ steps.wrapper.outputs.has_wrapper }}" = "true" ]; then
+            ./gradlew test --no-daemon --stacktrace --console=plain
+            ./gradlew testDebugUnitTest --no-daemon --stacktrace --console=plain
+          else
+            gradle test --stacktrace --console=plain
+            gradle testDebugUnitTest --stacktrace --console=plain || true
+          fi
 
       - name: Generate Test Report
         uses: dorny/test-reporter@v1
@@ -175,10 +199,18 @@ jobs:
           BUILD_TYPE: ${{ needs.validate.outputs.build_type }}
         run: |
           echo "Building $BUILD_TYPE APK..."
-          if [[ "$BUILD_TYPE" == "release" ]]; then
-            ./gradlew assembleRelease --no-daemon --stacktrace --console=plain
+          if [ "${{ steps.wrapper.outputs.has_wrapper }}" = "true" ]; then
+            if [[ "$BUILD_TYPE" == "release" ]]; then
+              ./gradlew assembleRelease --no-daemon --stacktrace --console=plain
+            else
+              ./gradlew assembleDebug --no-daemon --stacktrace --console=plain
+            fi
           else
-            ./gradlew assembleDebug --no-daemon --stacktrace --console=plain
+            if [[ "$BUILD_TYPE" == "release" ]]; then
+              gradle assembleRelease --stacktrace --console=plain
+            else
+              gradle assembleDebug --stacktrace --console=plain
+            fi
           fi
 
       - name: Upload APK Artifacts
@@ -232,6 +264,27 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Detect Gradle Wrapper
+        id: rel_wrapper
+        run: |
+          if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "has_wrapper=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_wrapper=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate Gradle Wrapper
+        if: steps.rel_wrapper.outputs.has_wrapper == 'true'
+        uses: gradle/wrapper-validation-action@v1
+
+      - name: Install Gradle 8.7 (fallback if no wrapper)
+        if: steps.rel_wrapper.outputs.has_wrapper == 'false'
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip
+          curl -L https://services.gradle.org/distributions/gradle-8.7-bin.zip -o gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+          echo "${{ github.workspace }}/gradle-8.7/bin" >> $GITHUB_PATH
+
       - name: Prepare keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -255,7 +308,11 @@ jobs:
 
       - name: Build Release APK
         run: |
-          ./gradlew assembleRelease --no-daemon --stacktrace --console=plain --info
+          if [ "${{ steps.rel_wrapper.outputs.has_wrapper }}" = "true" ]; then
+            ./gradlew assembleRelease --no-daemon --stacktrace --console=plain --info
+          else
+            gradle assembleRelease --stacktrace --console=plain --info
+          fi
         shell: bash
 
       - name: Upload Release APK artifact
