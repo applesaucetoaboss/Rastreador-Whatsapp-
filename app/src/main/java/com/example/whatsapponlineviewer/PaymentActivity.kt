@@ -60,7 +60,9 @@ class PaymentActivity : AppCompatActivity() {
     }
 
     fun onPaymentSuccess() {
+        // Immediately mark premium locally; then sync from backend to verify
         viewModel.setPremium()
+        viewModel.syncPremiumFromBackend()
         Toast.makeText(this, getString(R.string.payment_success), Toast.LENGTH_LONG).show()
         finish()
     }

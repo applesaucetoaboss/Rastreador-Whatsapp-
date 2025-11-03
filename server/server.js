@@ -176,12 +176,13 @@ app.post('/create-subscription', async (req, res) => {
 
     const pi = subscription.latest_invoice.payment_intent
     console.log('Created Subscription', { id: subscription.id, customer: customer.id })
-    return res.json({ clientSecret: pi.client_secret, subscriptionId: subscription.id })
+    return res.json({ clientSecret: pi.client_secret, subscriptionId: subscription.id, paymentIntentId: pi.id })
   } catch (err) {
     console.error('create-subscription error:', { message: err.message, type: err.type, code: err.code })
     return res.status(500).json({ error: err.message })
   }
 })
+// Refunds are not supported per policy; no refund endpoint
 
 // Serve static files from /public to mirror Netlify publish directory
 // Serve static site from /public at the project root

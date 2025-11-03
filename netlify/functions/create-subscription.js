@@ -39,7 +39,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientSecret: pi.client_secret, subscriptionId: subscription.id })
+      body: JSON.stringify({ clientSecret: pi.client_secret, subscriptionId: subscription.id, paymentIntentId: pi.id })
     }
   } catch (err) {
     return {
