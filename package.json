@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "note": "This repository is an Android Kotlin project. Open in Android Studio.",
-    "netlify:build": "echo Netlify functions-only build"
+    "render:info": "echo Render deployment is configured via render.yaml and GitHub Actions"
   },
   "dependencies": {
     "stripe": "^16.6.0"

@@ -57,6 +57,22 @@ Notas de pago
 - Stripe SDK está incluido (com.stripe:stripe-android:21.20.0). Para pagos reales, debes integrar un backend que genere PaymentIntents y provea client secrets.
 - Nunca incluyas claves secretas en el cliente. Usa sólo la publishable key en el cliente.
 
+Despliegue en Render
+--------------------
+- Backend Node (Express) desplegado exclusivamente en Render.
+- Configuración de infraestructura como código: `render.yaml`.
+- Pipeline de CI/CD: `.github/workflows/render-deploy.yml` con deploy hook opcional `RENDER_DEPLOY_HOOK_URL`.
+- Variables de entorno requeridas en Render:
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `STRIPE_PRICE_MXN_180_MONTHLY`
+- Endpoints expuestos por el backend:
+  - `GET /health` (salud del servicio)
+  - `POST /create-payment-intent`
+  - `POST /create-subscription`
+  - `GET /premium-status?phone=`
+- La app Android usa `BuildConfig.BACKEND_BASE_URL` que por defecto apunta a `https://rastreador-whatsapp-server.onrender.com/`. Puedes sobreescribirlo con `BACKEND_BASE_URL` en entorno/Gradle.
+
 Estructura del proyecto
 -----------------------
 - app/

@@ -10,12 +10,13 @@
     </style>
   </head>
   <body>
-    <h1>Endpoints de Netlify Functions</h1>
+    <h1>Endpoints del backend en Render</h1>
     <ul>
-      <li><code>/create-subscription</code> → crea suscripción (180 MXN/mes)</li>
-      <li><code>/create-payment-intent</code> → PaymentIntent de prueba</li>
-      <li><code>/premium-status?phone=</code> → estado premium (demo)</li>
+      <li><code>GET /health</code> → estado del servicio</li>
+      <li><code>POST /create-subscription</code> → crea suscripción (180 MXN/mes)</li>
+      <li><code>POST /create-payment-intent</code> → PaymentIntent de prueba</li>
+      <li><code>GET /premium-status?phone=</code> → estado premium</li>
     </ul>
-    <p>Configure variables en Netlify: <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_PRICE_MXN_180_MONTHLY</code>, <code>STRIPE_WEBHOOK_SECRET</code> (si usas webhook en tu servidor).</p>
+    <p>Desplegado en Render. Configure variables de entorno en el servicio de Render: <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_PRICE_MXN_180_MONTHLY</code>, <code>STRIPE_WEBHOOK_SECRET</code>.</p>
   </body>
   </html>

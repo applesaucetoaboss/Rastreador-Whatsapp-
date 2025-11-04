@@ -184,8 +184,8 @@ app.post('/create-subscription', async (req, res) => {
 })
 // Refunds are not supported per policy; no refund endpoint
 
-// Serve static files from /public to mirror Netlify publish directory
-// Serve static site from /public at the project root
+// Serve static files from /public
+// On Render, the Node service can serve the static site directly
 app.use(express.static(publicDir))
 
 // Root route: serve index.html to avoid "Cannot GET /" on Render
