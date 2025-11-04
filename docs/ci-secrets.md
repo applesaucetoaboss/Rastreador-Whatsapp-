@@ -5,7 +5,7 @@ This project’s CI/CD pipeline builds the Android app, runs unit tests, and pre
 ## Required Secrets (Android Build)
 
 - `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key used by the app (`pk_live_...` or `pk_test_...`).
-- `BACKEND_BASE_URL`: Base URL for the backend/API (e.g., `https://<your-site>.netlify.app`).
+- `BACKEND_BASE_URL`: Base URL para el backend/API (p. ej., `https://rastreador-whatsapp-server.onrender.com/`).
 
 ## Required Secrets (Release Signing)
 
